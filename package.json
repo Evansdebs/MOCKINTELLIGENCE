@@ -1,0 +1,11 @@
+{
+  "name": "mock-performance-intelligence",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Basic 9 Mock Examination Management & Performance Analytics System",
+  "scripts": {
+    "dev:server": "npm.cmd --prefix server run dev",
+    "dev:client": "npm.cmd --prefix client run dev",
+    "seed": "npm.cmd --prefix server run prisma:seed"
+  }
+}

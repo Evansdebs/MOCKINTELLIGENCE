@@ -1,0 +1,206 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  username     String    @unique
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         String    @default("TEACHER") // ADMIN, TEACHER, MANAGEMENT
+  status       String    @default("Active")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  subjects     TeacherSubject[]
+}
+
+model ClassRoom {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  status    String    @default("Active")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  students  Student[]
+  subjects  Subject[]
+}
+
+model SchoolSettings {
+  id                              String   @id @default("default-settings")
+  schoolName                      String   @default("Achimota Basic Model School")
+  logoUrl                         String?
+  address                         String?  @default("P.O. Box AH 123, Achimota, Accra - Ghana")
+  telephone                       String?  @default("+233 (0) 24 555 0192")
+  email                           String?  @default("info@achimotabasic.edu.gh")
+  academicYear                    String   @default("2025/2026")
+  currentClass                    String   @default("Basic 9")
+  motto                           String?  @default("Excellence, Character and Innovation")
+  headteacherName                 String   @default("Dr. Kwame Mensah-Bonsu")
+  enableRanking                   Boolean  @default(true)
+  passThreshold                   Float    @default(50.0)
+  stableThreshold                 Float    @default(1.0)
+  consecutiveDeclineAlertCount    Int      @default(3)
+  consecutiveBelowTargetAlertCount Int     @default(3)
+  updatedAt                       DateTime @updatedAt
+}
+
+model Student {
+  id          String    @id @default(uuid())
+  studentId   String    @unique
+  indexNumber String    @unique
+  firstName   String
+  middleName  String?
+  lastName    String
+  fullName    String
+  gender      String    // Male, Female
+  dateOfBirth DateTime?
+  classId     String?
+  classRoom   ClassRoom? @relation(fields: [classId], references: [id], onDelete: SetNull)
+  house       String?
+  photoUrl    String?
+  status      String    @default("Active") // Active, Inactive, Graduated
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  scores      Score[]
+
+  @@index([indexNumber])
+  @@index([classId])
+  @@index([status])
+}
+
+model Subject {
+  id                  String               @id @default(uuid())
+  name                String
+  code                String               @unique
+  maxScore            Float                @default(100.0)
+  status              String               @default("Active")
+  order               Int                  @default(0)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  examinationSubjects ExaminationSubject[]
+  scores              Score[]
+  teachers            TeacherSubject[]
+  classId             String?
+  classRoom           ClassRoom?           @relation(fields: [classId], references: [id], onDelete: SetNull)
+
+  @@index([code])
+  @@index([classId])
+}
+
+model TeacherSubject {
+  id        String   @id @default(uuid())
+  userId    String
+  subjectId String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subjectId])
+  @@index([userId])
+  @@index([subjectId])
+}
+
+model Examination {
+  id                  String               @id @default(uuid())
+  name                String               // e.g. "2026 Basic 9 Mock 1"
+  academicYear        String               @default("2025/2026")
+  description         String?
+  sequenceOrder       Int                  @default(1)
+  startDate           DateTime?
+  endDate             DateTime?
+  status              String               @default("Draft") // Draft, Active, Completed, Locked
+  lockedAt            DateTime?
+  lockedBy            String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  examinationSubjects ExaminationSubject[]
+  scores              Score[]
+
+  @@index([academicYear])
+  @@index([sequenceOrder])
+  @@index([status])
+}
+
+model ExaminationSubject {
+  id            String      @id @default(uuid())
+  examinationId String
+  subjectId     String
+  maxScore      Float       @default(100.0)
+  examination   Examination @relation(fields: [examinationId], references: [id], onDelete: Cascade)
+  subject       Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([examinationId, subjectId])
+  @@index([examinationId])
+  @@index([subjectId])
+}
+
+model Score {
+  id            String      @id @default(uuid())
+  studentId     String
+  examinationId String
+  subjectId     String
+  rawScore      Float?      // NULL if student did not take mock/subject or transferred late
+  percentage    Float?
+  grade         String?
+  gradePoint    Int?
+  remark        String?
+  isVerified    Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  student       Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  examination   Examination @relation(fields: [examinationId], references: [id], onDelete: Cascade)
+  subject       Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, examinationId, subjectId])
+  @@index([studentId])
+  @@index([examinationId])
+  @@index([subjectId])
+}
+
+model GradeScale {
+  id         String   @id @default(uuid())
+  grade      String   // A, B, C, D, E, F or 1, 2, 3...
+  minScore   Float
+  maxScore   Float
+  gradePoint Int?
+  remark     String
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([minScore, maxScore])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  userName   String   @default("System")
+  action     String   // SCORE_UPDATE, EXAM_LOCKED, EXAM_UNLOCKED, STUDENT_IMPORT, etc.
+  recordType String   // Score, Examination, Student, Settings
+  recordId   String?
+  oldValue   String?
+  newValue   String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([action])
+  @@index([recordType])
+  @@index([createdAt])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  message   String
+  type      String   @default("info") // info, success, warning, error
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([isRead])
+  @@index([createdAt])
+}
