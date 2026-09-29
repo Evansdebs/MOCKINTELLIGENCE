@@ -49,6 +49,8 @@ model SchoolSettings {
   stableThreshold                 Float    @default(1.0)
   consecutiveDeclineAlertCount    Int      @default(3)
   consecutiveBelowTargetAlertCount Int     @default(3)
+  studentsCanDownloadSlips        Boolean  @default(true)
+  teachersCanEditScores           Boolean  @default(true)
   updatedAt                       DateTime @updatedAt
 }
 

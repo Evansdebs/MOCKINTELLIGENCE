@@ -256,14 +256,20 @@ export const StudentPortalPage: React.FC = () => {
                 </option>
               ))}
             </select>
-            <button
-              onClick={handlePrint}
-              disabled={!studentResult || loadingSlip}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-semibold flex items-center gap-2 shadow-md shadow-blue-600/30 transition-all disabled:opacity-50"
-            >
-              <Printer className="w-4 h-4" />
-              <span>Print Slip</span>
-            </button>
+            {data.settings?.studentsCanDownloadSlips === false ? (
+              <span className="text-sm font-medium text-amber-600 bg-amber-50 px-3 py-2 rounded-xl border border-amber-200">
+                Slip downloads are currently disabled by administration.
+              </span>
+            ) : (
+              <button
+                onClick={handlePrint}
+                disabled={!studentResult || loadingSlip}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-semibold flex items-center gap-2 shadow-md shadow-blue-600/30 transition-all disabled:opacity-50"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Print Slip</span>
+              </button>
+            )}
           </div>
         </div>
 

@@ -4,7 +4,7 @@ import { api } from '../services/api';
 import { GradeScale } from '../types';
 
 export const SettingsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'school' | 'grading' | 'analytics'>('school');
+  const [activeTab, setActiveTab] = useState<'school' | 'grading' | 'analytics' | 'permissions'>('school');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -25,6 +25,10 @@ export const SettingsPage: React.FC = () => {
   const [passThreshold, setPassThreshold] = useState(50.0);
   const [stableThreshold, setStableThreshold] = useState(1.0);
   const [consecutiveDeclineAlertCount, setConsecutiveDeclineAlertCount] = useState(3);
+
+  // Permissions
+  const [studentsCanDownloadSlips, setStudentsCanDownloadSlips] = useState(true);
+  const [teachersCanEditScores, setTeachersCanEditScores] = useState(true);
 
   // Grade Scales
   const [gradeScales, setGradeScales] = useState<GradeScale[]>([]);
@@ -52,6 +56,8 @@ export const SettingsPage: React.FC = () => {
         setPassThreshold(s.passThreshold || 50.0);
         setStableThreshold(s.stableThreshold || 1.0);
         setConsecutiveDeclineAlertCount(s.consecutiveDeclineAlertCount || 3);
+        setStudentsCanDownloadSlips(s.studentsCanDownloadSlips ?? true);
+        setTeachersCanEditScores(s.teachersCanEditScores ?? true);
       }
       if (res.gradeScales) {
         setGradeScales(res.gradeScales);
@@ -81,6 +87,8 @@ export const SettingsPage: React.FC = () => {
         passThreshold,
         stableThreshold,
         consecutiveDeclineAlertCount,
+        studentsCanDownloadSlips,
+        teachersCanEditScores,
       });
       setSuccessMessage('School settings saved successfully.');
       setTimeout(() => setSuccessMessage(null), 3500);
@@ -155,6 +163,14 @@ export const SettingsPage: React.FC = () => {
           }`}
         >
           Analytics Engine
+        </button>
+        <button
+          onClick={() => setActiveTab('permissions')}
+          className={`flex-1 py-1.5 rounded-lg transition-all ${
+            activeTab === 'permissions' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+          }`}
+        >
+          Permissions
         </button>
       </div>
 
@@ -462,6 +478,74 @@ export const SettingsPage: React.FC = () => {
             >
               <Save className="w-4 h-4" />
               <span>{saving ? 'Saving...' : 'Save Configuration'}</span>
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* TAB 4: PERMISSIONS */}
+      {activeTab === 'permissions' && (
+        <form onSubmit={handleSaveSchoolSettings} className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-4">
+          <h3 className="text-sm font-bold text-slate-900 pb-2 border-b border-slate-100 flex items-center gap-2">
+            Access Control & Permissions
+          </h3>
+          
+          <div className="space-y-4">
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+              <label className="flex items-center justify-between cursor-pointer">
+                <div>
+                  <span className="block text-sm font-bold text-slate-800">Student Portal: Download Slips</span>
+                  <span className="block text-xs text-slate-500 mt-1">Allow students to view and download their result slips via the student portal. Disable this to restrict access (e.g. for pending fees).</span>
+                </div>
+                <div className="relative inline-block w-12 h-6 align-middle select-none">
+                  <input
+                    type="checkbox"
+                    checked={studentsCanDownloadSlips}
+                    onChange={(e) => setStudentsCanDownloadSlips(e.target.checked)}
+                    className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
+                    style={{
+                      right: studentsCanDownloadSlips ? '0' : '1.5rem',
+                      borderColor: studentsCanDownloadSlips ? '#2563eb' : '#cbd5e1',
+                      transition: 'all 0.3s ease-in'
+                    }}
+                  />
+                  <div className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer ${studentsCanDownloadSlips ? 'bg-blue-600' : 'bg-slate-300'}`}></div>
+                </div>
+              </label>
+            </div>
+
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+              <label className="flex items-center justify-between cursor-pointer">
+                <div>
+                  <span className="block text-sm font-bold text-slate-800">Teacher Portal: Edit Scores</span>
+                  <span className="block text-xs text-slate-500 mt-1">Allow subject teachers to input and edit scores for active examinations. Disable to lock score entry globally.</span>
+                </div>
+                <div className="relative inline-block w-12 h-6 align-middle select-none">
+                  <input
+                    type="checkbox"
+                    checked={teachersCanEditScores}
+                    onChange={(e) => setTeachersCanEditScores(e.target.checked)}
+                    className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
+                    style={{
+                      right: teachersCanEditScores ? '0' : '1.5rem',
+                      borderColor: teachersCanEditScores ? '#2563eb' : '#cbd5e1',
+                      transition: 'all 0.3s ease-in'
+                    }}
+                  />
+                  <div className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer ${teachersCanEditScores ? 'bg-blue-600' : 'bg-slate-300'}`}></div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-end">
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-600/30 flex items-center gap-1.5 disabled:opacity-50"
+            >
+              <Save className="w-4 h-4" />
+              <span>{saving ? 'Saving...' : 'Save Permissions'}</span>
             </button>
           </div>
         </form>

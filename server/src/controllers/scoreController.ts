@@ -30,6 +30,8 @@ export async function getScoreSheet(req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
+    const settings = await prisma.schoolSettings.findFirst();
+
     const studentWhere: any = { status: 'Active' };
     if (classFilter && classFilter !== 'all') {
       studentWhere.classId = String(classFilter);
@@ -91,6 +93,9 @@ export async function getScoreSheet(req: AuthRequest, res: Response): Promise<vo
         status: exam.status,
         isLocked: exam.status === 'Locked',
       },
+      settings: {
+        teachersCanEditScores: settings?.teachersCanEditScores ?? true,
+      },
       subjects,
       rows,
     });
@@ -140,6 +145,12 @@ export async function batchSaveScores(req: AuthRequest, res: Response): Promise<
       res.status(403).json({
         error: `Examination "${exam.name}" is locked. Modification of scores is prohibited. Unlock examination to make changes.`,
       });
+      return;
+    }
+
+    const settings = await prisma.schoolSettings.findFirst();
+    if (req.user?.role === 'TEACHER' && settings?.teachersCanEditScores === false) {
+      res.status(403).json({ error: 'Score entry is currently disabled by administration.' });
       return;
     }
 

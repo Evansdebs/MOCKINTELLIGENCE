@@ -222,7 +222,7 @@ export const ScoreEntryPage: React.FC = () => {
       );
     }) || [];
 
-  const isLocked = sheetData?.examination?.isLocked;
+  const isLocked = sheetData?.examination?.isLocked || (user?.role === 'TEACHER' && sheetData?.settings?.teachersCanEditScores === false);
 
   return (
     <div className="space-y-6">
@@ -330,7 +330,7 @@ export const ScoreEntryPage: React.FC = () => {
             {isLocked ? (
               <div className="px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold flex items-center gap-1.5">
                 <Lock className="w-3.5 h-3.5" />
-                <span>Examination is Locked (Read Only)</span>
+                <span>{sheetData?.examination?.isLocked ? 'Examination is Locked' : 'Score Entry Disabled globally'} (Read Only)</span>
               </div>
             ) : (
               <>

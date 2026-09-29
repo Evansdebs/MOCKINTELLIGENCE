@@ -747,6 +747,7 @@ export class AnalyticsService {
     }
 
     return {
+      settings,
       student,
       mockTimeline,
       previousMockChange,

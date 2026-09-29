@@ -20,6 +20,8 @@ export async function getSettings(req: AuthRequest, res: Response): Promise<void
           passThreshold: 50.0,
           stableThreshold: 1.0,
           enableRanking: true,
+          studentsCanDownloadSlips: true,
+          teachersCanEditScores: true,
         },
       });
     }
@@ -51,6 +53,8 @@ export async function updateSettings(req: AuthRequest, res: Response): Promise<v
       stableThreshold,
       consecutiveDeclineAlertCount,
       consecutiveBelowTargetAlertCount,
+      studentsCanDownloadSlips,
+      teachersCanEditScores,
     } = req.body;
 
     const old = await prisma.schoolSettings.findFirst();
@@ -72,6 +76,8 @@ export async function updateSettings(req: AuthRequest, res: Response): Promise<v
         stableThreshold: Number(stableThreshold) || 1.0,
         consecutiveDeclineAlertCount: Number(consecutiveDeclineAlertCount) || 3,
         consecutiveBelowTargetAlertCount: Number(consecutiveBelowTargetAlertCount) || 3,
+        studentsCanDownloadSlips: studentsCanDownloadSlips !== undefined ? Boolean(studentsCanDownloadSlips) : true,
+        teachersCanEditScores: teachersCanEditScores !== undefined ? Boolean(teachersCanEditScores) : true,
       },
       create: {
         schoolName,
@@ -86,6 +92,8 @@ export async function updateSettings(req: AuthRequest, res: Response): Promise<v
         enableRanking: Boolean(enableRanking),
         passThreshold: Number(passThreshold) || 50.0,
         stableThreshold: Number(stableThreshold) || 1.0,
+        studentsCanDownloadSlips: studentsCanDownloadSlips !== undefined ? Boolean(studentsCanDownloadSlips) : true,
+        teachersCanEditScores: teachersCanEditScores !== undefined ? Boolean(teachersCanEditScores) : true,
       },
     });
 
