@@ -66,7 +66,18 @@ export const ReportsPage: React.FC = () => {
 
       const doc = new jsPDF();
 
-      // Header
+      // Header Logo
+      if (school.logoUrl) {
+        try {
+          // Add logo at left margin (x: 14) and right margin (x: 176)
+          doc.addImage(school.logoUrl, 'JPEG', 14, 10, 20, 20);
+          doc.addImage(school.logoUrl, 'JPEG', 176, 10, 20, 20);
+        } catch (e) {
+          console.warn('Could not add logo to PDF:', e);
+        }
+      }
+
+      // Header Text
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
       doc.text(school.schoolName.toUpperCase(), 105, 18, { align: 'center' });

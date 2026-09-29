@@ -243,22 +243,40 @@ export const ResultsPage: React.FC = () => {
       {activeView === 'slip' && studentResult && (
         <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 md:p-10 max-w-4xl mx-auto print:border-none print:shadow-none print:p-0">
           {/* Official School Header */}
-          <div className="text-center pb-6 border-b-2 border-slate-900">
-            <div className="w-12 h-12 mx-auto rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xl mb-2">
-              <School className="w-6 h-6" />
+          <div className="flex flex-col md:flex-row items-center justify-between pb-6 border-b-2 border-slate-900 gap-4">
+            {/* Left Logo */}
+            {studentResult.school?.logoUrl ? (
+              <img src={studentResult.school.logoUrl} alt="School Logo Left" className="w-16 h-16 md:w-24 md:h-24 object-contain shrink-0" />
+            ) : (
+              <div className="w-16 h-16 md:w-24 md:h-24 shrink-0 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xl">
+                <School className="w-8 h-8 md:w-10 md:h-10" />
+              </div>
+            )}
+            
+            {/* Center Text */}
+            <div className="text-center flex-1 px-2">
+              <h1 className="text-xl md:text-2xl font-black text-slate-900 uppercase tracking-wide leading-tight">
+                {studentResult.school?.schoolName || 'Achimota Basic Model School'}
+              </h1>
+              <p className="text-[10px] md:text-xs text-slate-600 mt-1">
+                {studentResult.school?.address || 'P.O. Box AH 123, Achimota, Accra - Ghana'} • Tel: {studentResult.school?.telephone}
+              </p>
+              <p className="text-[10px] md:text-xs italic text-blue-700 font-serif mt-1">
+                "{studentResult.school?.motto || 'Excellence, Character and Innovation'}"
+              </p>
+              <div className="mt-3 md:mt-4 inline-block px-3 md:px-4 py-1 md:py-1.5 rounded-full bg-slate-100 text-slate-900 font-extrabold text-[10px] md:text-xs uppercase tracking-wider border border-slate-300">
+                {studentResult.examination?.name} RESULT SLIP ({studentResult.examination?.academicYear})
+              </div>
             </div>
-            <h1 className="text-2xl font-black text-slate-900 uppercase tracking-wide">
-              {studentResult.school?.schoolName || 'Achimota Basic Model School'}
-            </h1>
-            <p className="text-xs text-slate-600 mt-0.5">
-              {studentResult.school?.address || 'P.O. Box AH 123, Achimota, Accra - Ghana'} • Tel: {studentResult.school?.telephone}
-            </p>
-            <p className="text-xs italic text-blue-700 font-serif mt-0.5">
-              "{studentResult.school?.motto || 'Excellence, Character and Innovation'}"
-            </p>
-            <div className="mt-3 inline-block px-4 py-1 rounded-full bg-slate-100 text-slate-900 font-extrabold text-xs uppercase tracking-wider border border-slate-300">
-              {studentResult.examination?.name} RESULT SLIP ({studentResult.examination?.academicYear})
-            </div>
+
+            {/* Right Logo */}
+            {studentResult.school?.logoUrl ? (
+              <img src={studentResult.school.logoUrl} alt="School Logo Right" className="w-16 h-16 md:w-24 md:h-24 object-contain shrink-0 hidden md:block print:block" />
+            ) : (
+              <div className="w-16 h-16 md:w-24 md:h-24 shrink-0 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xl hidden md:flex print:flex">
+                <School className="w-8 h-8 md:w-10 md:h-10" />
+              </div>
+            )}
           </div>
 
           {/* Student Profile Metadata Box */}

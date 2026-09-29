@@ -22,6 +22,9 @@ export async function login(req: Request, res: Response): Promise<void> {
           { email: username.trim().toLowerCase() },
         ],
       },
+      include: {
+        subjects: true,
+      }
     });
 
     if (!user) {
@@ -63,6 +66,7 @@ export async function login(req: Request, res: Response): Promise<void> {
         name: user.name,
         email: user.email,
         role: user.role,
+        subjects: user.subjects,
       },
     });
   } catch (err: any) {
@@ -80,7 +84,7 @@ export async function me(req: AuthRequest, res: Response): Promise<void> {
 
     const user = await prisma.user.findUnique({
       where: { id: req.user.userId },
-      select: { id: true, username: true, name: true, email: true, role: true, status: true },
+      select: { id: true, username: true, name: true, email: true, role: true, status: true, subjects: true },
     });
 
     if (!user) {

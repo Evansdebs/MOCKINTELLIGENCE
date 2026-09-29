@@ -284,6 +284,16 @@ export async function previewScoreImport(req: AuthRequest, res: Response): Promi
       return;
     }
 
+    if (req.user?.role === 'TEACHER') {
+      const isAssigned = await prisma.teacherSubject.findFirst({
+        where: { userId: req.user.userId, subjectId }
+      });
+      if (!isAssigned) {
+        res.status(403).json({ error: 'You are not authorized to import scores for this subject.' });
+        return;
+      }
+    }
+
     const maxScore = subject.maxScore || 100;
     const gradeScales = await prisma.gradeScale.findMany({ orderBy: { order: 'asc' } });
 

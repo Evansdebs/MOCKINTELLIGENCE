@@ -11,6 +11,7 @@ export const SettingsPage: React.FC = () => {
 
   // School Settings Form
   const [schoolName, setSchoolName] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
   const [address, setAddress] = useState('');
   const [telephone, setTelephone] = useState('');
   const [email, setEmail] = useState('');
@@ -39,6 +40,7 @@ export const SettingsPage: React.FC = () => {
       if (res.settings) {
         const s = res.settings;
         setSchoolName(s.schoolName || '');
+        setLogoUrl(s.logoUrl || '');
         setAddress(s.address || '');
         setTelephone(s.telephone || '');
         setEmail(s.email || '');
@@ -67,6 +69,7 @@ export const SettingsPage: React.FC = () => {
       setSaving(true);
       await api.updateSettings({
         schoolName,
+        logoUrl,
         address,
         telephone,
         email,
@@ -174,6 +177,37 @@ export const SettingsPage: React.FC = () => {
                 onChange={(e) => setSchoolName(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                School Logo
+              </label>
+              <div className="flex items-center gap-4">
+                {logoUrl && (
+                  <img src={logoUrl} alt="Logo" className="w-12 h-12 object-contain bg-slate-50 border rounded" />
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setLogoUrl(reader.result as string);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all cursor-pointer"
+                />
+                {logoUrl && (
+                  <button type="button" onClick={() => setLogoUrl('')} className="text-xs text-rose-500 font-semibold">
+                    Remove Logo
+                  </button>
+                )}
+              </div>
             </div>
 
             <div>
