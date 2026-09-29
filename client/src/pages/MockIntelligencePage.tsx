@@ -29,6 +29,7 @@ import {
   Legend,
   AreaChart,
   Area,
+  Cell,
 } from 'recharts';
 import html2canvas from 'html2canvas';
 import { api } from '../services/api';
@@ -118,7 +119,7 @@ export const MockIntelligencePage: React.FC = () => {
       // Load heatmap for latest mock
       if (kpis?.examTrends?.length > 0) {
         const latestExamId = kpis.examTrends[kpis.examTrends.length - 1].examId;
-        const heat = await api.getHeatmap({ examinationId: latestExamId, class: classFilter });
+        const heat = await api.getHeatmap({ examinationId: latestExamId, classId: classFilter });
         setHeatmapData(heat);
       }
     } catch (err) {
@@ -653,12 +654,12 @@ export const MockIntelligencePage: React.FC = () => {
                     />
                     <Bar
                       dataKey="change"
-                      fill="#3b82f6"
                       radius={[4, 4, 4, 4]}
-                      cell={(props: any, index: number) => (
-                        <cell key={`cell-${index}`} fill={props.payload.change >= 0 ? '#10b981' : '#f43f5e'} />
-                      )}
-                    />
+                    >
+                      {mockComparison.deltaChartData?.map((entry: any, index: number) => (
+                        <Cell key={`cell-${index}`} fill={entry.change >= 0 ? '#10b981' : '#f43f5e'} />
+                      ))}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>

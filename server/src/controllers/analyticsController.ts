@@ -74,6 +74,12 @@ export async function getHeatmap(req: AuthRequest, res: Response): Promise<void>
 export async function getStudentAnalytics(req: AuthRequest, res: Response): Promise<void> {
   try {
     const { studentId } = req.params;
+    
+    if (req.user?.role === 'STUDENT' && req.user.userId !== studentId) {
+      res.status(403).json({ error: 'You can only view your own analytics.' });
+      return;
+    }
+
     const data = await AnalyticsService.getStudentAnalytics(studentId);
     res.json(data);
   } catch (err: any) {
@@ -125,5 +131,22 @@ export async function compareMultipleMocks(req: AuthRequest, res: Response): Pro
     res.json(data);
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to compare mock examinations: ' + err.message });
+  }
+}
+
+export async function getTeacherDashboard(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const { academicYear } = req.query;
+    if (!req.user || req.user.role !== 'TEACHER') {
+      res.status(403).json({ error: 'Only teachers can access the teacher dashboard.' });
+      return;
+    }
+    const data = await AnalyticsService.getTeacherAnalytics(
+      req.user.userId,
+      academicYear ? String(academicYear) : undefined
+    );
+    res.json(data);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to fetch teacher analytics: ' + err.message });
   }
 }

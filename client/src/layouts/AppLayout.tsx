@@ -54,41 +54,26 @@ export const AppLayout: React.FC = () => {
     }
   };
 
-  const navItems = [
+  let navItems = [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    {
-      label: 'Examinations',
-      path: '/examinations',
-      icon: Calendar,
-    },
-    {
-      label: 'Students',
-      path: '/students',
-      icon: Users,
-    },
+    { label: 'Examinations', path: '/examinations', icon: Calendar },
+    { label: 'Students', path: '/students', icon: Users },
     { label: 'Subjects', path: '/subjects', icon: BookOpen },
     { label: 'Classes', path: '/classes', icon: School },
-    {
-      label: 'Score Entry',
-      path: '/scores',
-      icon: Edit3,
-    },
-    {
-      label: 'Results & Slips',
-      path: '/results',
-      icon: FileText,
-    },
-    {
-      label: 'Mock Intelligence',
-      path: '/analytics',
-      icon: TrendingUp,
-      badge: 'Core',
-    },
+    { label: 'Score Entry', path: '/scores', icon: Edit3 },
+    { label: 'Results & Slips', path: '/results', icon: FileText },
+    { label: 'Mock Intelligence', path: '/analytics', icon: TrendingUp, badge: 'Core' },
     { label: 'Reports', path: '/reports', icon: Printer },
     ...(isAdmin ? [{ label: 'Users', path: '/users', icon: UserCheck }] : []),
     ...(isAdmin ? [{ label: 'Audit Logs', path: '/audit-logs', icon: ShieldCheck }] : []),
     ...(isAdmin ? [{ label: 'Settings', path: '/settings', icon: Settings }] : []),
   ];
+
+  if (user?.role === 'STUDENT') {
+    navItems = [
+      { label: 'Student Portal', path: '/portal', icon: Sparkles, badge: 'New' }
+    ];
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">

@@ -66,6 +66,7 @@ model Student {
   classRoom   ClassRoom? @relation(fields: [classId], references: [id], onDelete: SetNull)
   house       String?
   photoUrl    String?
+  pin         String?    // 4-digit or 6-digit PIN for student portal login
   status      String    @default("Active") // Active, Inactive, Graduated
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

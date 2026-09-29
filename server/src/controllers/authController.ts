@@ -75,10 +75,76 @@ export async function login(req: Request, res: Response): Promise<void> {
   }
 }
 
+export async function studentLogin(req: Request, res: Response): Promise<void> {
+  try {
+    const { indexNumber, pin } = req.body;
+    if (!indexNumber || !pin) {
+      res.status(400).json({ error: 'Index Number and PIN are required.' });
+      return;
+    }
+
+    const student = await prisma.student.findFirst({
+      where: {
+        indexNumber: indexNumber.trim(),
+        pin: pin.trim(),
+        status: 'Active'
+      },
+    });
+
+    if (!student) {
+      res.status(401).json({ error: 'Invalid Index Number or PIN.' });
+      return;
+    }
+
+    const payload: UserTokenPayload = {
+      userId: student.id,
+      username: student.indexNumber,
+      name: student.fullName,
+      email: '',
+      role: 'STUDENT' as any,
+    };
+
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+
+    res.json({
+      token,
+      user: {
+        id: student.id,
+        username: student.indexNumber,
+        name: student.fullName,
+        email: '',
+        role: 'STUDENT',
+      },
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Authentication failed.' });
+  }
+}
+
 export async function me(req: AuthRequest, res: Response): Promise<void> {
   try {
     if (!req.user) {
       res.status(401).json({ error: 'Not authenticated.' });
+      return;
+    }
+
+    if (req.user.role === 'STUDENT') {
+      const student = await prisma.student.findUnique({
+        where: { id: req.user.userId },
+      });
+      if (!student) {
+        res.status(404).json({ error: 'Student not found.' });
+        return;
+      }
+      res.json({
+        user: {
+          id: student.id,
+          username: student.indexNumber,
+          name: student.fullName,
+          email: '',
+          role: 'STUDENT',
+        }
+      });
       return;
     }
 

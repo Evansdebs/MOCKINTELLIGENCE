@@ -22,6 +22,7 @@ const router = Router();
 
 // ==================== AUTHENTICATION ====================
 router.post('/auth/login', authController.login);
+router.post('/auth/student-login', authController.studentLogin);
 router.get('/auth/me', authenticate, authController.me);
 
 // ==================== SCHOOL SETTINGS & GRADES ====================
@@ -82,6 +83,7 @@ router.get('/analytics/heatmap', authenticate, analyticsController.getHeatmap);
 router.get('/analytics/student/:studentId', authenticate, analyticsController.getStudentAnalytics);
 router.post('/analytics/compare-students', authenticate, analyticsController.compareStudents);
 router.get('/analytics/weak-areas', authenticate, analyticsController.getWeakAreasAndAlerts);
+router.get('/analytics/teacher-dashboard', authenticate, authorize(['TEACHER']), analyticsController.getTeacherDashboard);
 
 // ==================== AUDIT LOGS ====================
 router.get('/audit-logs', authenticate, authorize(['ADMIN']), auditController.getAuditLogs);

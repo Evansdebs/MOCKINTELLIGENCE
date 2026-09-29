@@ -9,6 +9,11 @@ export async function getStudentResult(req: AuthRequest, res: Response): Promise
   try {
     const { studentId, examinationId } = req.params;
 
+    if (req.user?.role === 'STUDENT' && req.user.userId !== studentId) {
+      res.status(403).json({ error: 'You can only view your own result.' });
+      return;
+    }
+
     const settings = await prisma.schoolSettings.findFirst() || {
       schoolName: 'Achimota Basic Model School',
       passThreshold: 50.0,

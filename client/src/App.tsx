@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppLayout } from './layouts/AppLayout';
 import { LoginPage } from './pages/LoginPage';
@@ -16,12 +16,14 @@ import { AuditLogsPage } from './pages/AuditLogsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { UsersPage } from './pages/UsersPage';
 import { ClassesPage } from './pages/ClassesPage';
+import { StudentPortalPage } from './pages/StudentPortalPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean }> = ({
   children,
   adminOnly = false,
 }) => {
   const { user, isLoading, isAdmin } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -36,6 +38,14 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean 
   }
 
   if (adminOnly && !isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (user.role === 'STUDENT' && location.pathname !== '/portal') {
+    return <Navigate to="/portal" replace />;
+  }
+  
+  if (user.role !== 'STUDENT' && location.pathname === '/portal') {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -58,6 +68,7 @@ export const App: React.FC = () => {
           >
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/portal" element={<StudentPortalPage />} />
             <Route path="/examinations" element={<ExaminationsPage />} />
             <Route path="/students" element={<StudentsPage />} />
             <Route path="/students/:id" element={<StudentDetailPage />} />

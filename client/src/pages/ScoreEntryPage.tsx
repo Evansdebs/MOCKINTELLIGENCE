@@ -103,7 +103,7 @@ export const ScoreEntryPage: React.FC = () => {
       const res = await api.getScoreSheet({
         examinationId: selectedExamId,
         subjectId: selectedSubjectId !== 'all' ? selectedSubjectId : undefined,
-        class: selectedClass !== 'all' ? selectedClass : undefined,
+        classId: selectedClass !== 'all' ? selectedClass : undefined,
       });
 
       setSheetData(res);

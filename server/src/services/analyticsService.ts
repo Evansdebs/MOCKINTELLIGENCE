@@ -591,6 +591,15 @@ export class AnalyticsService {
 
     const longTermTrend = calculateLongTermTrend(mockTimeline.map(m => m.average), settings.stableThreshold);
 
+    const latestExam = exams.length > 0 ? exams[exams.length - 1] : null;
+    let latestExamScores: any[] = [];
+    if (latestExam) {
+      latestExamScores = await prisma.score.findMany({
+        where: { examinationId: latestExam.id, student: { classId: student.classId, status: 'Active' } },
+        select: { subjectId: true, percentage: true }
+      });
+    }
+
     // Subject trends for this learner
     const subjectTrends = subjects.map(sub => {
       const subScores = exams.map(exam => {
@@ -620,6 +629,62 @@ export class AnalyticsService {
 
       const subTrend = calculateLongTermTrend(subScores.map(s => s.percentage), settings.stableThreshold);
 
+      // 1. Peer Comparison: Class Average
+      const classScores = latestExamScores.filter(s => s.subjectId === sub.id && s.percentage !== null);
+      const classAverage = classScores.length > 0
+        ? Math.round((classScores.reduce((sum, s) => sum + s.percentage, 0) / classScores.length) * 10) / 10
+        : null;
+
+      // 2. Predictive BECE Grade
+      // Simple prediction: Give more weight to the most recent mocks
+      let predictedScore = null;
+      if (validP.length === 1) {
+        predictedScore = validP[0];
+      } else if (validP.length > 1) {
+        // Weighted moving average
+        let weightSum = 0;
+        let weightedScoreSum = 0;
+        validP.forEach((score, idx) => {
+          const weight = idx + 1; // More recent mocks have higher weight
+          weightedScoreSum += score * weight;
+          weightSum += weight;
+        });
+        predictedScore = Math.round(weightedScoreSum / weightSum);
+      }
+      
+      const getGrade = (score: number) => {
+        if (score >= 80) return '1';
+        if (score >= 70) return '2';
+        if (score >= 65) return '3';
+        if (score >= 60) return '4';
+        if (score >= 55) return '5';
+        if (score >= 50) return '6';
+        if (score >= 45) return '7';
+        if (score >= 40) return '8';
+        return '9';
+      };
+      
+      const predictedGrade = predictedScore !== null ? getGrade(predictedScore) : null;
+
+      // 3. Automated Recommendation
+      let recommendation = null;
+      let status: 'good' | 'warning' | 'danger' = 'good';
+      if (predictedScore !== null && classAverage !== null) {
+        if (predictedScore < settings.passThreshold) {
+          recommendation = `High risk of failing ${sub.name}. Immediate intervention required.`;
+          status = 'danger';
+        } else if (subTrend === 'Declining') {
+          recommendation = `Your performance in ${sub.name} is dropping. Review recent topics.`;
+          status = 'warning';
+        } else if (predictedScore < classAverage) {
+          recommendation = `You are performing below the class average in ${sub.name}.`;
+          status = 'warning';
+        } else {
+          recommendation = `Keep it up! You are on track for a good grade in ${sub.name}.`;
+          status = 'good';
+        }
+      }
+
       return {
         subjectId: sub.id,
         subjectName: sub.name,
@@ -629,6 +694,11 @@ export class AnalyticsService {
         previousChange: subPrevChange,
         overallChange: subOverallChange,
         trend: subTrend,
+        classAverage,
+        predictedScore,
+        predictedGrade,
+        recommendation,
+        status
       };
     });
 
@@ -639,6 +709,43 @@ export class AnalyticsService {
     const bestSubject = sortedSub.length > 0 ? sortedSub[0] : null;
     const weakestSubject = sortedSub.length > 0 ? sortedSub[sortedSub.length - 1] : null;
 
+    // Predicted Overall Aggregate based on predicted grades
+    let predictedAggregate = null;
+    const predictedGrades = sortedSub.filter(s => s.predictedScore !== null);
+    if (predictedGrades.length >= 6) { // Usually 6 subjects for aggregate
+      // Assuming a simplistic sum of grades mapping to aggregate points (A=1, B=2... etc)
+      // We will just use ScoreService to map the predicted scores to grades and sum the top 6.
+      // Wait, ScoreService calculates grades. But let's just approximate the aggregate from the predicted scores.
+      const getAggregateValue = (score: number) => {
+        if (score >= 80) return 1;
+        if (score >= 70) return 2;
+        if (score >= 65) return 3;
+        if (score >= 60) return 4;
+        if (score >= 55) return 5;
+        if (score >= 50) return 6;
+        if (score >= 45) return 7;
+        if (score >= 40) return 8;
+        return 9;
+      };
+      
+      const sortedPredicted = [...predictedGrades].sort((a, b) => b.predictedScore! - a.predictedScore!);
+      const coreSubjects = sortedPredicted.filter(s => ['ENGL', 'MATH', 'SCI', 'SST'].includes(s.subjectCode || ''));
+      const otherSubjects = sortedPredicted.filter(s => !['ENGL', 'MATH', 'SCI', 'SST'].includes(s.subjectCode || ''));
+      
+      let aggregateSum = 0;
+      let count = 0;
+      for (const core of coreSubjects) {
+        aggregateSum += getAggregateValue(core.predictedScore!);
+        count++;
+      }
+      for (const other of otherSubjects) {
+        if (count >= 6) break;
+        aggregateSum += getAggregateValue(other.predictedScore!);
+        count++;
+      }
+      predictedAggregate = aggregateSum;
+    }
+
     return {
       student,
       mockTimeline,
@@ -647,6 +754,7 @@ export class AnalyticsService {
       longTermTrend,
       bestSubject,
       weakestSubject,
+      predictedAggregate,
       subjectTrends,
     };
   }
@@ -1039,5 +1147,116 @@ export class AnalyticsService {
       baselineMockId: baseline.examId,
     };
   }
-}
 
+  /**
+   * Analytics tailored for a specific teacher, filtering by their assigned subjects
+   */
+  static async getTeacherAnalytics(teacherId: string, academicYear?: string) {
+    const settings = await prisma.schoolSettings.findFirst() || {
+      passThreshold: 50.0,
+      academicYear: '2025/2026',
+    };
+    const year = academicYear || settings.academicYear;
+
+    // 1. Get Teacher's Subjects
+    const teacherSubjects = await prisma.teacherSubject.findMany({
+      where: { userId: teacherId },
+      include: { subject: true }
+    });
+
+    if (teacherSubjects.length === 0) {
+      return {
+        assignedSubjects: [],
+        kpis: { average: 0, passRate: 0, totalScores: 0 },
+        classPerformance: [],
+        subjectBreakdown: []
+      };
+    }
+
+    const subjectIds = teacherSubjects.map(ts => ts.subjectId);
+
+    // 2. Fetch Exams for the year
+    const exams = await prisma.examination.findMany({
+      where: { academicYear: year },
+      orderBy: { sequenceOrder: 'asc' },
+    });
+
+    if (exams.length === 0) {
+      return {
+        assignedSubjects: teacherSubjects.map(ts => ts.subject),
+        kpis: { average: 0, passRate: 0, totalScores: 0 },
+        classPerformance: [],
+        subjectBreakdown: []
+      };
+    }
+
+    const examIds = exams.map(e => e.id);
+
+    // 3. Fetch scores for these subjects in these exams
+    const scores = await prisma.score.findMany({
+      where: {
+        subjectId: { in: subjectIds },
+        examinationId: { in: examIds },
+        percentage: { not: null }
+      },
+      include: {
+        student: { include: { classRoom: true } },
+        subject: true
+      }
+    });
+
+    // KPI Calculation
+    const totalScores = scores.length;
+    const avgScore = totalScores > 0 
+      ? Math.round((scores.reduce((sum, s) => sum + (s.percentage || 0), 0) / totalScores) * 10) / 10 
+      : 0;
+    const passedScores = scores.filter(s => (s.percentage || 0) >= settings.passThreshold).length;
+    const passRate = totalScores > 0 
+      ? Math.round((passedScores / totalScores) * 100 * 10) / 10 
+      : 0;
+
+    // Subject Breakdown
+    const subjectBreakdown = teacherSubjects.map(ts => {
+      const subScores = scores.filter(s => s.subjectId === ts.subjectId);
+      const subCount = subScores.length;
+      const subAvg = subCount > 0 ? Math.round((subScores.reduce((sum, s) => sum + (s.percentage || 0), 0) / subCount) * 10) / 10 : 0;
+      const subPass = subScores.filter(s => (s.percentage || 0) >= settings.passThreshold).length;
+      return {
+        subjectName: ts.subject.name,
+        subjectCode: ts.subject.code,
+        average: subAvg,
+        passRate: subCount > 0 ? Math.round((subPass / subCount) * 100 * 10) / 10 : 0,
+        count: subCount
+      };
+    });
+
+    // Class Performance (Average across assigned subjects per class)
+    const classMap = new Map<string, { className: string; sum: number; count: number }>();
+    scores.forEach(s => {
+      if (s.student.classRoom) {
+        const cName = s.student.classRoom.name;
+        if (!classMap.has(cName)) classMap.set(cName, { className: cName, sum: 0, count: 0 });
+        const cData = classMap.get(cName)!;
+        cData.sum += s.percentage || 0;
+        cData.count++;
+      }
+    });
+
+    const classPerformance = Array.from(classMap.values()).map(c => ({
+      className: c.className,
+      average: Math.round((c.sum / c.count) * 10) / 10,
+      count: c.count
+    })).sort((a, b) => b.average - a.average);
+
+    return {
+      assignedSubjects: teacherSubjects.map(ts => ts.subject),
+      kpis: {
+        average: avgScore,
+        passRate,
+        totalScores
+      },
+      classPerformance,
+      subjectBreakdown
+    };
+  }
+}

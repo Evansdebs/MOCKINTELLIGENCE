@@ -44,6 +44,7 @@ export async function request<T>(
 export const api = {
   // Auth
   login: (credentials: any) => request<any>('/auth/login', { method: 'POST', body: JSON.stringify(credentials) }),
+  studentLogin: (credentials: any) => request<any>('/auth/student-login', { method: 'POST', body: JSON.stringify(credentials) }),
   me: () => request<any>('/auth/me'),
 
   // Settings
@@ -130,6 +131,10 @@ export const api = {
   getWeakAreasAndAlerts: (params: Record<string, string> = {}) => {
     const query = new URLSearchParams(params).toString();
     return request<any>(`/analytics/weak-areas?${query}`);
+  },
+  getTeacherDashboard: (params: Record<string, string> = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request<any>(`/analytics/teacher-dashboard?${query}`);
   },
   compareMultipleMocks: (examIds: string[], classFilter?: string) =>
     request<any>('/analytics/compare-mocks', {

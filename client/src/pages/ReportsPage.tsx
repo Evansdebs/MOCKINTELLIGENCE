@@ -221,6 +221,44 @@ export const ReportsPage: React.FC = () => {
     }
   };
 
+  const handleExportWAEC = async () => {
+    try {
+      setGenerating(true);
+      if (reportType === 'class' && selectedExamId) {
+        const classData = await api.getClassResults(selectedExamId, selectedClass);
+        // WAEC requires specific columns: Index, Name, Sex, and Subject codes
+        const headers = ['Index Number', 'Candidate Name', 'Sex', ...classData.subjects.map((s: any) => s.code || s.name), 'Total Score', 'Total Grade', 'Aggregate'];
+        
+        const dataRows = classData.studentRows.map((r: any) => {
+          const row: any = {
+            'Index Number': r.student.indexNumber,
+            'Candidate Name': r.student.fullName,
+            'Sex': r.student.gender || '',
+          };
+          classData.subjects.forEach((s: any) => {
+            // WAEC usually requires the raw mark, not percentage
+            row[s.code || s.name] = r.subjectResults[s.id]?.rawScore ?? '';
+          });
+          row['Total Score'] = r.totalRaw !== undefined ? r.totalRaw : '';
+          row['Total Grade'] = r.overallGrade || '';
+          row['Aggregate'] = r.aggregate !== null ? r.aggregate : '';
+          return row;
+        });
+
+        const ws = XLSX.utils.json_to_sheet(dataRows, { header: headers });
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "WAEC Upload");
+        XLSX.writeFile(wb, `${classData.examination.name}_WAEC_Export.xlsx`);
+      } else {
+        alert("WAEC Export is only available for Class Master Reports.");
+      }
+    } catch (err: any) {
+      alert('Failed to export WAEC format: ' + err.message);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -348,8 +386,18 @@ export const ReportsPage: React.FC = () => {
           )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+        <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3 flex-wrap">
+          {reportType === 'class' && (
+            <button
+              onClick={handleExportWAEC}
+              disabled={generating}
+              className="px-4 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all"
+            >
+              <Download className="w-4 h-4 text-amber-600" />
+              <span>WAEC Export (CSV)</span>
+            </button>
+          )}
+
           <button
             onClick={handleExportExcel}
             disabled={generating}

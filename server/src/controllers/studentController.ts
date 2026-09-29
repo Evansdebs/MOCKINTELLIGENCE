@@ -131,6 +131,7 @@ export async function createStudent(req: AuthRequest, res: Response): Promise<vo
         house: house?.trim() || null,
         photoUrl: photoUrl || null,
         status: 'Active',
+        pin: Math.floor(1000 + Math.random() * 9000).toString(),
       },
     });
 
@@ -395,6 +396,7 @@ export async function commitStudentImport(req: AuthRequest, res: Response): Prom
             class: st.class || 'Basic 9',
             house: st.house || null,
             status: 'Active',
+            pin: Math.floor(1000 + Math.random() * 9000).toString(),
           },
         });
         importedCount++;
@@ -443,6 +445,7 @@ export async function exportStudentsExcel(req: AuthRequest, res: Response): Prom
       'Class': s.classRoom?.name || '',
       'House': s.house || '',
       'Status': s.status,
+      'Portal PIN': s.pin || 'N/A',
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(rows);

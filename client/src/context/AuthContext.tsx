@@ -7,10 +7,12 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   login: (credentials: { username: string; password: string }) => Promise<void>;
+  studentLogin: (credentials: { indexNumber: string; pin: string }) => Promise<void>;
   logout: () => void;
   isAdmin: boolean;
   isTeacher: boolean;
   isManagement: boolean;
+  isStudent: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -49,6 +51,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('mock_intel_user', JSON.stringify(res.user));
   };
 
+  const studentLogin = async (credentials: { indexNumber: string; pin: string }) => {
+    const res = await api.studentLogin(credentials);
+    setToken(res.token);
+    setUser(res.user);
+    localStorage.setItem('mock_intel_token', res.token);
+    localStorage.setItem('mock_intel_user', JSON.stringify(res.user));
+  };
+
   const logout = () => {
     setToken(null);
     setUser(null);
@@ -59,6 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isAdmin = user?.role === 'ADMIN';
   const isTeacher = user?.role === 'TEACHER';
   const isManagement = user?.role === 'MANAGEMENT';
+  const isStudent = user?.role === 'STUDENT';
 
   return (
     <AuthContext.Provider
@@ -67,10 +78,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         token,
         isLoading,
         login,
+        studentLogin,
         logout,
         isAdmin,
         isTeacher,
         isManagement,
+        isStudent,
       }}
     >
       {children}

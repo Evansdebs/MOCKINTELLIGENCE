@@ -43,29 +43,41 @@ export const DashboardPage: React.FC = () => {
   const [subjectTrends, setSubjectTrends] = useState<any>(null);
   const [gradeDistribution, setGradeDistribution] = useState<any>(null);
   const [weakAreas, setWeakAreas] = useState<any>(null);
+  const [teacherData, setTeacherData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchDashboardData();
-  }, [classFilter]);
+  }, [classFilter, user?.role]);
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const [kpis, subs, grades, weak, studentsRes] = await Promise.all([
-        api.getOverview({ class: classFilter }),
-        api.getSubjectTrends({ class: classFilter }),
-        api.getGradeDistribution({ class: classFilter }),
-        api.getWeakAreasAndAlerts({ class: classFilter }),
-        api.getStudents(),
-      ]);
+      if (user?.role === 'TEACHER') {
+        const [teacherRes, studentsRes] = await Promise.all([
+          api.getTeacherDashboard(),
+          api.getStudents(),
+        ]);
+        setTeacherData(teacherRes);
+        if (studentsRes?.classes) {
+          setClassesList(studentsRes.classes);
+        }
+      } else {
+        const [kpis, subs, grades, weak, studentsRes] = await Promise.all([
+          api.getOverview({ class: classFilter }),
+          api.getSubjectTrends({ class: classFilter }),
+          api.getGradeDistribution({ class: classFilter }),
+          api.getWeakAreasAndAlerts({ class: classFilter }),
+          api.getStudents(),
+        ]);
 
-      setKpiData(kpis);
-      setSubjectTrends(subs);
-      setGradeDistribution(grades);
-      setWeakAreas(weak);
-      if (studentsRes?.classes) {
-        setClassesList(studentsRes.classes);
+        setKpiData(kpis);
+        setSubjectTrends(subs);
+        setGradeDistribution(grades);
+        setWeakAreas(weak);
+        if (studentsRes?.classes) {
+          setClassesList(studentsRes.classes);
+        }
       }
     } catch (err) {
       console.error('Failed to load dashboard:', err);
@@ -186,8 +198,96 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* KPI Overview Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      {user?.role === 'TEACHER' ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm card-glow">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
+                <BookOpen className="w-5 h-5" />
+              </div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">My Subjects</p>
+              <h3 className="text-2xl font-extrabold text-slate-900 mt-1">{teacherData?.assignedSubjects?.length ?? 0}</h3>
+            </div>
+            
+            <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm card-glow">
+              <div className="w-10 h-10 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center mb-3">
+                <Award className="w-5 h-5" />
+              </div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Average Score</p>
+              <h3 className="text-2xl font-extrabold text-slate-900 mt-1">{teacherData?.kpis?.average ?? 0}%</h3>
+            </div>
+
+            <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm card-glow">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Overall Pass Rate</p>
+              <h3 className="text-2xl font-extrabold text-slate-900 mt-1">{teacherData?.kpis?.passRate ?? 0}%</h3>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
+              <h2 className="text-base font-extrabold text-slate-900 tracking-tight mb-4">Subject Breakdown</h2>
+              <div className="space-y-4">
+                {teacherData?.subjectBreakdown?.map((sub: any) => (
+                  <div key={sub.subjectCode} className="p-4 rounded-xl border border-slate-100 bg-slate-50">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="font-bold text-sm text-slate-800">{sub.subjectName}</h4>
+                      <span className="text-xs font-semibold bg-white px-2 py-1 rounded-md border border-slate-200">{sub.subjectCode}</span>
+                    </div>
+                    <div className="flex justify-between items-center mt-3 text-xs">
+                      <div>
+                        <p className="text-slate-500">Average</p>
+                        <p className="font-bold text-slate-900">{sub.average}%</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500">Pass Rate</p>
+                        <p className="font-bold text-emerald-600">{sub.passRate}%</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500">Entries</p>
+                        <p className="font-bold text-slate-900">{sub.count}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {!teacherData?.subjectBreakdown?.length && (
+                  <p className="text-sm text-slate-500 text-center py-4">No data available for assigned subjects.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
+              <h2 className="text-base font-extrabold text-slate-900 tracking-tight mb-4">Class Performance in My Subjects</h2>
+              <div className="space-y-3">
+                {teacherData?.classPerformance?.map((cls: any, i: number) => (
+                  <div key={cls.className} className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-xs">
+                      {i + 1}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-bold text-slate-700">{cls.className}</span>
+                        <span className="font-bold text-slate-900">{cls.average}%</span>
+                      </div>
+                      <div className="w-full bg-slate-100 rounded-full h-2">
+                        <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${cls.average}%` }} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {!teacherData?.classPerformance?.length && (
+                  <p className="text-sm text-slate-500 text-center py-4">No class performance data yet.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* KPI Overview Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {/* Total Students */}
         <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm card-glow">
           <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
@@ -489,6 +589,8 @@ export const DashboardPage: React.FC = () => {
           )}
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 };
