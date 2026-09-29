@@ -10,7 +10,9 @@ import {
   Search,
   School,
   ChevronDown,
+  Table,
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { api } from '../services/api';
 import { Examination, Student } from '../types';
 
@@ -109,10 +111,42 @@ export const ResultsPage: React.FC = () => {
     window.print();
   };
 
+  const handleExportExcel = () => {
+    if (!classResult) return;
+    
+    const data = classResult.studentRows.map((row: any) => {
+      const rowData: any = {
+        'Rank': row.rank || '—',
+        'Index No': row.student.indexNumber,
+        'Candidate Name': row.student.fullName,
+      };
+      
+      classResult.subjects.forEach((sub: any) => {
+        const sc = row.subjectResults[sub.id];
+        rowData[sub.code] = sc ? sc.percentage : '—';
+        rowData[`${sub.code} Grade`] = sc ? sc.grade : '—';
+      });
+      
+      rowData['Total'] = row.totalRaw !== null ? row.totalRaw : '—';
+      rowData['Average'] = row.average !== null ? row.average : '—';
+      rowData['Overall Grade'] = row.overallGrade || '—';
+      rowData['Aggregate'] = row.aggregate !== null ? row.aggregate : '—';
+      rowData['Passed'] = row.passedCount;
+      
+      return rowData;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Class Results");
+    
+    XLSX.writeFile(workbook, `${classResult.examination?.name}_Results.xlsx`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Controls Bar (Hidden in Print) */}
-      <div className="no-print bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="print:hidden bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3">
           {/* View Mode Toggle */}
           <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl">
@@ -185,13 +219,24 @@ export const ResultsPage: React.FC = () => {
           )}
         </div>
 
-        <button
-          onClick={handlePrint}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-blue-600/30 transition-all self-end md:self-auto"
-        >
-          <Printer className="w-4 h-4" />
-          <span>Print / Save PDF</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {activeView === 'class' && (
+            <button
+              onClick={handleExportExcel}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-emerald-600/30 transition-all"
+            >
+              <Table className="w-4 h-4" />
+              <span>Export Excel</span>
+            </button>
+          )}
+          <button
+            onClick={handlePrint}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-blue-600/30 transition-all"
+          >
+            <Printer className="w-4 h-4" />
+            <span>Print Slip</span>
+          </button>
+        </div>
       </div>
 
       {/* VIEW 1: CANDIDATE RESULT SLIP (Section 17) */}
@@ -299,6 +344,12 @@ export const ResultsPage: React.FC = () => {
               </span>
             </div>
             <div>
+              <span className="text-[10px] uppercase font-bold text-blue-800 block">Aggregate</span>
+              <span className="text-xl font-black text-slate-900">
+                {studentResult.summary?.aggregate ?? '—'}
+              </span>
+            </div>
+            <div>
               <span className="text-[10px] uppercase font-bold text-blue-800 block">Total Marks</span>
               <span className="text-xl font-black text-slate-900">
                 {studentResult.summary?.totalScore ?? '—'}
@@ -360,11 +411,11 @@ export const ResultsPage: React.FC = () => {
           {/* Master Table */}
           <div className="overflow-x-auto max-h-[600px] border border-slate-200 rounded-xl">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-100 text-slate-700 font-extrabold uppercase text-[10px] tracking-wider sticky top-0 z-20 border-b border-slate-200">
+              <thead className="bg-slate-100 text-slate-700 font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-200">
                 <tr>
-                  <th className="py-3 px-2 text-center w-12 sticky left-0 bg-slate-100 z-30">Rank</th>
-                  <th className="py-3 px-3 w-28 sticky left-12 bg-slate-100 z-30">Index No</th>
-                  <th className="py-3 px-4 min-w-[160px] sticky left-40 bg-slate-100 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">
+                  <th className="py-3 px-2 text-center w-12">Rank</th>
+                  <th className="py-3 px-3 w-28">Index No</th>
+                  <th className="py-3 px-4 min-w-[160px]">
                     Candidate Name
                   </th>
                   {classResult.subjects?.map((sub: any) => (
@@ -374,19 +425,20 @@ export const ResultsPage: React.FC = () => {
                   ))}
                   <th className="py-3 px-3 text-center bg-slate-50/70 font-black">Total</th>
                   <th className="py-3 px-3 text-center bg-blue-50/70 font-black">Average</th>
+                  <th className="py-3 px-3 text-center bg-amber-50/70 font-black">Aggregate</th>
                   <th className="py-3 px-3 text-center font-bold">Passed</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {classResult.studentRows?.map((row: any) => (
                   <tr key={row.student.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="py-2.5 px-2 text-center font-bold text-slate-500 sticky left-0 bg-white z-10">
+                    <td className="py-2.5 px-2 text-center font-bold text-slate-500">
                       {row.rank ? `#${row.rank}` : '—'}
                     </td>
-                    <td className="py-2.5 px-3 font-mono font-bold text-slate-800 sticky left-12 bg-white z-10">
+                    <td className="py-2.5 px-3 font-mono font-bold text-slate-800">
                       {row.student.indexNumber}
                     </td>
-                    <td className="py-2.5 px-4 font-semibold text-slate-900 sticky left-40 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)] truncate">
+                    <td className="py-2.5 px-4 font-semibold text-slate-900 truncate">
                       {row.student.fullName}
                     </td>
 
@@ -410,6 +462,9 @@ export const ResultsPage: React.FC = () => {
                     </td>
                     <td className="py-2.5 px-3 text-center bg-blue-50/50 font-black text-blue-900">
                       {row.average !== null ? `${row.average}%` : '—'}
+                    </td>
+                    <td className="py-2.5 px-3 text-center bg-amber-50/50 font-black text-amber-900">
+                      {row.aggregate !== null ? row.aggregate : '—'}
                     </td>
                     <td className="py-2.5 px-3 text-center font-bold text-emerald-700">
                       {row.passedCount}

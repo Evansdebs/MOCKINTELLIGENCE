@@ -1,5 +1,5 @@
-import { Response } from 'express';
 import { prisma } from '../prisma';
+import { calculateAggregate, calculateGradeForScore } from '../utils/grading';
 import { AuthRequest } from '../middleware/auth';
 
 /**
@@ -14,8 +14,10 @@ export async function getStudentResult(req: AuthRequest, res: Response): Promise
       passThreshold: 50.0,
       enableRanking: true,
     };
+    
+    const gradeScales = await prisma.gradeScale.findMany({ orderBy: { minScore: 'desc' } });
 
-    const student = await prisma.student.findUnique({ where: { id: studentId } });
+    const student = await prisma.student.findUnique({ where: { id: studentId }, include: { classRoom: true } });
     if (!student) {
       res.status(404).json({ error: 'Student not found.' });
       return;
@@ -53,6 +55,10 @@ export async function getStudentResult(req: AuthRequest, res: Response): Promise
     const sortedByPercentage = [...validScores].sort((a, b) => (b.percentage || 0) - (a.percentage || 0));
     const bestSubject = sortedByPercentage.length > 0 ? sortedByPercentage[0].subject.name : null;
     const weakestSubject = sortedByPercentage.length > 0 ? sortedByPercentage[sortedByPercentage.length - 1].subject.name : null;
+
+    const aggregate = calculateAggregate(
+      validScores.map(s => ({ gradePoint: s.gradePoint, isCore: s.subject.isCore }))
+    );
 
     // Optional Class Position / Ranking
     let position: string | null = null;
@@ -100,6 +106,7 @@ export async function getStudentResult(req: AuthRequest, res: Response): Promise
       summary: {
         totalScore,
         average,
+        aggregate,
         subjectsAttempted: validScores.length,
         subjectsPassed: passedCount,
         subjectsFailed: failedCount,
@@ -125,6 +132,7 @@ export async function getClassResults(req: AuthRequest, res: Response): Promise<
       passThreshold: 50.0,
       enableRanking: true,
     };
+    const gradeScales = await prisma.gradeScale.findMany({ orderBy: { minScore: 'desc' } });
 
     const exam = await prisma.examination.findUnique({
       where: { id: examinationId },
@@ -191,12 +199,22 @@ export async function getClassResults(req: AuthRequest, res: Response): Promise<
       });
 
       const average = count > 0 ? Math.round((totalPercentage / count) * 10) / 10 : null;
+      
+      const aggregateScores = Object.values(subjectResults).filter(Boolean).map((sc: any) => ({
+        gradePoint: sc.gradePoint,
+        isCore: sc.subject.isCore,
+      }));
+      const aggregate = calculateAggregate(aggregateScores);
+      
+      const overallGradeObj = average !== null ? calculateGradeForScore(average, 100, gradeScales) : null;
 
       return {
         student: st,
         subjectResults,
         totalRaw: Math.round(totalRaw * 10) / 10,
         average,
+        overallGrade: overallGradeObj ? overallGradeObj.grade : null,
+        aggregate,
         attempted: count,
         passedCount,
         failedCount: count - passedCount,
@@ -205,16 +223,21 @@ export async function getClassResults(req: AuthRequest, res: Response): Promise<
 
     // Calculate rank
     if (settings.enableRanking) {
-      const sortedByAvg = [...studentRows]
-        .filter(r => r.average !== null)
-        .sort((a, b) => (b.average || 0) - (a.average || 0));
+      const sortedByAggregate = [...studentRows]
+        .filter(r => r.aggregate !== null)
+        .sort((a, b) => {
+          if (a.aggregate === b.aggregate) {
+            return (b.average || 0) - (a.average || 0);
+          }
+          return (a.aggregate || 99) - (b.aggregate || 99);
+        });
 
       studentRows.forEach(r => {
-        if (r.average !== null) {
-          const rank = sortedByAvg.findIndex(s => s.student.id === r.student.id) + 1;
+        if (r.aggregate !== null) {
+          const rank = sortedByAggregate.findIndex(s => s.student.id === r.student.id) + 1;
           (r as any).rank = rank;
         } else {
-          (r as any).rank = null;
+          (r as any).rank = null; // Maybe they missed some core subjects
         }
       });
     }

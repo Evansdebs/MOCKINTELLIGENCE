@@ -14,9 +14,9 @@ export const getClassRooms = async (req: Request, res: Response) => {
 
 export const createClassRoom = async (req: Request, res: Response) => {
   try {
-    const { name, status } = req.body;
+    const { name, status, teacherId } = req.body;
     const classRoom = await prisma.classRoom.create({
-      data: { name, status: status || 'Active' }
+      data: { name, status: status || 'Active', teacherId }
     });
     res.status(201).json(classRoom);
   } catch (error: any) {
@@ -30,11 +30,11 @@ export const createClassRoom = async (req: Request, res: Response) => {
 export const updateClassRoom = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, status } = req.body;
+    const { name, status, teacherId } = req.body;
     
     const classRoom = await prisma.classRoom.update({
       where: { id },
-      data: { name, status }
+      data: { name, status, teacherId }
     });
     res.json(classRoom);
   } catch (error: any) {

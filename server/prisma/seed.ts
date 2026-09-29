@@ -44,12 +44,15 @@ async function main() {
 
   // 2. Grade Scales (Configurable)
   const gradeScalesData = [
-    { grade: 'A', minScore: 80, maxScore: 100, gradePoint: 1, remark: 'Excellent', order: 0 },
-    { grade: 'B', minScore: 70, maxScore: 79.99, gradePoint: 2, remark: 'Very Good', order: 1 },
-    { grade: 'C', minScore: 60, maxScore: 69.99, gradePoint: 3, remark: 'Good', order: 2 },
-    { grade: 'D', minScore: 50, maxScore: 59.99, gradePoint: 4, remark: 'Satisfactory', order: 3 },
-    { grade: 'E', minScore: 40, maxScore: 49.99, gradePoint: 5, remark: 'Needs Improvement', order: 4 },
-    { grade: 'F', minScore: 0, maxScore: 39.99, gradePoint: 9, remark: 'Unsatisfactory', order: 5 },
+    { grade: '1', minScore: 80, maxScore: 100, gradePoint: 1, remark: 'Highest', order: 0 },
+    { grade: '2', minScore: 70, maxScore: 79.99, gradePoint: 2, remark: 'Higher', order: 1 },
+    { grade: '3', minScore: 65, maxScore: 69.99, gradePoint: 3, remark: 'High', order: 2 },
+    { grade: '4', minScore: 60, maxScore: 64.99, gradePoint: 4, remark: 'High Average', order: 3 },
+    { grade: '5', minScore: 55, maxScore: 59.99, gradePoint: 5, remark: 'Average', order: 4 },
+    { grade: '6', minScore: 50, maxScore: 54.99, gradePoint: 6, remark: 'Low Average', order: 5 },
+    { grade: '7', minScore: 45, maxScore: 49.99, gradePoint: 7, remark: 'Low', order: 6 },
+    { grade: '8', minScore: 40, maxScore: 44.99, gradePoint: 8, remark: 'Lower', order: 7 },
+    { grade: '9', minScore: 0, maxScore: 39.99, gradePoint: 9, remark: 'Lowest', order: 8 },
   ];
 
   for (const scale of gradeScalesData) {
@@ -100,16 +103,16 @@ async function main() {
 
   // 4. Subjects (Basic 9 BECE Curriculum)
   const subjectsData = [
-    { name: 'Mathematics', code: 'MATH', maxScore: 100, order: 0 },
-    { name: 'English Language', code: 'ENG', maxScore: 100, order: 1 },
-    { name: 'Integrated Science', code: 'SCI', maxScore: 100, order: 2 },
-    { name: 'Social Studies', code: 'SOC', maxScore: 100, order: 3 },
-    { name: 'Computing', code: 'COMP', maxScore: 100, order: 4 },
-    { name: 'French', code: 'FREN', maxScore: 100, order: 5 },
-    { name: 'Ghanaian Language (Twi)', code: 'GHA', maxScore: 100, order: 6 },
-    { name: 'Religious & Moral Education', code: 'RME', maxScore: 100, order: 7 },
-    { name: 'Career Technology', code: 'CTECH', maxScore: 100, order: 8 },
-    { name: 'Creative Arts & Design', code: 'CAD', maxScore: 100, order: 9 },
+    { name: 'Mathematics', code: 'MATH', maxScore: 100, isCore: true, order: 0 },
+    { name: 'English Language', code: 'ENG', maxScore: 100, isCore: true, order: 1 },
+    { name: 'Integrated Science', code: 'SCI', maxScore: 100, isCore: true, order: 2 },
+    { name: 'Social Studies', code: 'SOC', maxScore: 100, isCore: true, order: 3 },
+    { name: 'Computing', code: 'COMP', maxScore: 100, isCore: false, order: 4 },
+    { name: 'French', code: 'FREN', maxScore: 100, isCore: false, order: 5 },
+    { name: 'Ghanaian Language (Twi)', code: 'GHA', maxScore: 100, isCore: false, order: 6 },
+    { name: 'Religious & Moral Education', code: 'RME', maxScore: 100, isCore: false, order: 7 },
+    { name: 'Career Technology', code: 'CTECH', maxScore: 100, isCore: false, order: 8 },
+    { name: 'Creative Arts & Design', code: 'CAD', maxScore: 100, isCore: false, order: 9 },
   ];
 
   const createdSubjects = [];

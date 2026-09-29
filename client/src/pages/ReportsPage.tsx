@@ -85,13 +85,15 @@ export const ReportsPage: React.FC = () => {
         doc.setFont('helvetica', 'bold');
         doc.text(`${classData.examination.name} — Class Examination Report`, 14, 42);
 
-        const tableHeaders = ['Rank', 'Index', 'Candidate Name', ...classData.subjects.map((s: any) => s.code), 'Mean'];
+        const tableHeaders = ['Rank', 'Index', 'Candidate Name', ...classData.subjects.map((s: any) => s.code), 'Mean', 'Grade', 'Agg'];
         const tableBody = classData.studentRows.map((r: any) => [
           r.rank ? `#${r.rank}` : '—',
           r.student.indexNumber,
           r.student.fullName,
           ...classData.subjects.map((s: any) => r.subjectResults[s.id]?.percentage ?? '—'),
           r.average ? `${r.average}%` : '—',
+          r.overallGrade || '—',
+          r.aggregate !== null ? r.aggregate : '—',
         ]);
 
         autoTable(doc, {
@@ -111,7 +113,7 @@ export const ReportsPage: React.FC = () => {
 
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
-        doc.text(`Candidate: ${stData.student.fullName}  |  Index: ${stData.student.indexNumber}  |  Class: ${stData.student.class}`, 14, 49);
+        doc.text(`Candidate: ${stData.student.fullName}  |  Index: ${stData.student.indexNumber}  |  Class: ${stData.student.classRoom?.name || 'N/A'}`, 14, 49);
 
         const body = stData.scores.map((sc: any) => [
           sc.subject.name,
@@ -130,12 +132,13 @@ export const ReportsPage: React.FC = () => {
 
         const finalY = (doc as any).lastAutoTable.finalY + 10;
         doc.setFont('helvetica', 'bold');
-        doc.text(`Overall Mean: ${stData.summary.average}%   |   Passed: ${stData.summary.subjectsPassed}   |   Position: ${stData.summary.position || 'N/A'}`, 14, finalY);
+        doc.text(`Overall Mean: ${stData.summary.average}%   |   Passed: ${stData.summary.subjectsPassed}   |   Aggregate: ${stData.summary.aggregate ?? '—'}   |   Position: ${stData.summary.position || 'N/A'}`, 14, finalY);
 
         doc.save(`${stData.student.indexNumber}_Result_Slip.pdf`);
       } else {
         // Fallback series export
-        const seriesData = await api.getMockComparison({ class: selectedClass });
+        const seriesResponse = await api.getMockComparison({ class: selectedClass });
+        const seriesData = seriesResponse.tableData || [];
         doc.setFontSize(13);
         doc.setFont('helvetica', 'bold');
         doc.text('Basic 9 Sequential Mock Progression Report', 14, 42);
@@ -175,12 +178,16 @@ export const ReportsPage: React.FC = () => {
             Rank: r.rank ? `#${r.rank}` : '—',
             'Index Number': r.student.indexNumber,
             'Candidate Name': r.student.fullName,
-            Class: r.student.class,
+            Class: r.student.classRoom?.name || 'N/A',
           };
           classData.subjects.forEach((s: any) => {
-            item[s.name] = r.subjectResults[s.id]?.percentage ?? '';
+            const sc = r.subjectResults[s.id];
+            item[s.name] = sc?.percentage ?? '';
+            item[`${s.name} Grade`] = sc?.grade ?? '';
           });
           item['Overall Average (%)'] = r.average;
+          item['Overall Grade'] = r.overallGrade || '';
+          item['Aggregate'] = r.aggregate !== null ? r.aggregate : '';
           item['Subjects Passed'] = r.passedCount;
           return item;
         });
@@ -190,8 +197,8 @@ export const ReportsPage: React.FC = () => {
         XLSX.utils.book_append_sheet(wb, ws, 'Class Results');
         XLSX.writeFile(wb, `${classData.examination.name}_Results.xlsx`);
       } else {
-        const comp = await api.getMockComparison({ class: selectedClass });
-        const ws = XLSX.utils.json_to_sheet(comp);
+        const compResponse = await api.getMockComparison({ class: selectedClass });
+        const ws = XLSX.utils.json_to_sheet(compResponse.tableData || []);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Mock Comparison');
         XLSX.writeFile(wb, 'Mock_Series_Analytics.xlsx');

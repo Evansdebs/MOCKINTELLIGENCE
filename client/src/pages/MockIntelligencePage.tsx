@@ -311,10 +311,11 @@ export const MockIntelligencePage: React.FC = () => {
                 </div>
                 <button
                   onClick={() => handleExportChart('class-avg-chart', 'class_average_trend')}
-                  title="Export Chart"
-                  className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors dark:hover:bg-slate-800"
+                  title="Download Chart (PNG)"
+                  className="px-2 py-1.5 flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-100"
                 >
-                  <Download className="w-4 h-4" />
+                  <Download className="w-3.5 h-3.5" />
+                  <span>PNG</span>
                 </button>
               </div>
 
@@ -360,10 +361,11 @@ export const MockIntelligencePage: React.FC = () => {
                 </div>
                 <button
                   onClick={() => handleExportChart('pass-rate-chart', 'pass_rate_trend')}
-                  title="Export Chart"
-                  className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors dark:hover:bg-slate-800"
+                  title="Download Chart (PNG)"
+                  className="px-2 py-1.5 flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-transparent hover:border-emerald-100"
                 >
-                  <Download className="w-4 h-4" />
+                  <Download className="w-3.5 h-3.5" />
+                  <span>PNG</span>
                 </button>
               </div>
 
@@ -464,11 +466,11 @@ export const MockIntelligencePage: React.FC = () => {
               </div>
               <button
                 onClick={() => handleExportChart('subject-multi-series-chart', 'subject_performance')}
-                title="Export Chart"
-                className="px-3 py-1.5 flex items-center gap-1.5 bg-slate-100 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg text-xs font-semibold transition-colors dark:bg-slate-800 dark:hover:bg-slate-700"
+                title="Download Chart (PNG)"
+                className="px-3 py-1.5 flex items-center gap-1.5 bg-slate-100 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg text-xs font-semibold transition-colors border border-slate-200"
               >
                 <Download className="w-4 h-4" />
-                <span>Export Chart</span>
+                <span>Download (PNG)</span>
               </button>
             </div>
 

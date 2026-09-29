@@ -93,7 +93,7 @@ export const AppLayout: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
       {/* Sidebar Desktop */}
-      <aside className="hidden md:flex flex-col w-72 bg-slate-900 text-slate-200 border-r border-slate-800 shrink-0 select-none">
+      <aside className="print:hidden hidden md:flex flex-col w-72 bg-slate-900 text-slate-200 border-r border-slate-800 shrink-0 select-none">
         {/* Brand */}
         <div className="p-6 border-b border-slate-800/80">
           <div className="flex items-center gap-3">
@@ -167,7 +167,7 @@ export const AppLayout: React.FC = () => {
       </aside>
 
       {/* Mobile Header */}
-      <header className="md:hidden bg-slate-900 text-white px-4 py-3 flex items-center justify-between border-b border-slate-800 sticky top-0 z-50">
+      <header className="print:hidden md:hidden bg-slate-900 text-white px-4 py-3 flex items-center justify-between border-b border-slate-800 sticky top-0 z-50">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white">
             <TrendingUp className="w-4 h-4" />
@@ -250,7 +250,7 @@ export const AppLayout: React.FC = () => {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         {/* Top Navbar */}
-        <div className="no-print hidden md:flex items-center justify-between px-8 py-4 bg-white border-b border-slate-200/80 sticky top-0 z-30">
+        <div className="print:hidden hidden md:flex items-center justify-between px-8 py-4 bg-white border-b border-slate-200/80 sticky top-0 z-30">
           {/* Global Search Bar */}
           <form onSubmit={handleSearchSubmit} className="relative w-96">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />

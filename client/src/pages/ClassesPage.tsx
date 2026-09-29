@@ -12,11 +12,23 @@ export const ClassesPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClass, setEditingClass] = useState<any>(null);
   const [name, setName] = useState('');
+  const [teacherId, setTeacherId] = useState('');
+  const [teachers, setTeachers] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadClasses();
+    loadTeachers();
   }, []);
+
+  const loadTeachers = async () => {
+    try {
+      const res = await api.getUsers();
+      setTeachers((res || []).filter((u: any) => u.role === 'TEACHER'));
+    } catch (err) {
+      console.error('Failed to load teachers', err);
+    }
+  };
 
   const loadClasses = async () => {
     try {
@@ -33,6 +45,7 @@ export const ClassesPage: React.FC = () => {
   const handleOpenAdd = () => {
     setEditingClass(null);
     setName('');
+    setTeacherId('');
     setError(null);
     setIsModalOpen(true);
   };
@@ -40,6 +53,7 @@ export const ClassesPage: React.FC = () => {
   const handleOpenEdit = (cls: any) => {
     setEditingClass(cls);
     setName(cls.name);
+    setTeacherId(cls.teacherId || '');
     setError(null);
     setIsModalOpen(true);
   };
@@ -50,6 +64,7 @@ export const ClassesPage: React.FC = () => {
 
     const payload = {
       name: name.trim(),
+      teacherId: teacherId || null,
     };
 
     try {
@@ -115,6 +130,9 @@ export const ClassesPage: React.FC = () => {
                 </div>
                 <h3 className="text-base font-bold text-slate-900">{cls.name}</h3>
               </div>
+              {cls.teacher && (
+                <p className="text-xs text-slate-500 font-medium ml-12">Teacher: {cls.teacher.name}</p>
+              )}
             </div>
 
             {isAdmin && (
@@ -169,6 +187,20 @@ export const ClassesPage: React.FC = () => {
                   onChange={(e) => setName(e.target.value)}
                   className="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Assign Teacher (Optional)</label>
+                <select
+                  value={teacherId}
+                  onChange={(e) => setTeacherId(e.target.value)}
+                  className="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                >
+                  <option value="">-- No Teacher Assigned --</option>
+                  {teachers.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">

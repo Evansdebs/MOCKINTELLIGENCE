@@ -43,6 +43,7 @@ export async function createSubject(req: AuthRequest, res: Response): Promise<vo
         code: code.trim().toUpperCase(),
         maxScore: Number(maxScore) || 100,
         order: Number(order) || 0,
+        isCore: req.body.isCore === true || req.body.isCore === 'true',
         status: 'Active',
         classId: classId || null,
       },
@@ -83,6 +84,7 @@ export async function updateSubject(req: AuthRequest, res: Response): Promise<vo
         maxScore: maxScore !== undefined ? Number(maxScore) : existing.maxScore,
         status: status || existing.status,
         order: order !== undefined ? Number(order) : existing.order,
+        isCore: req.body.isCore !== undefined ? (req.body.isCore === true || req.body.isCore === 'true') : existing.isCore,
         classId: classId !== undefined ? (classId === '' ? null : classId) : existing.classId,
       },
     });

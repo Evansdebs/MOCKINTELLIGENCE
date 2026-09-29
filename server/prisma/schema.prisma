@@ -18,12 +18,15 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   subjects     TeacherSubject[]
+  classes      ClassRoom[]
 }
 
 model ClassRoom {
   id        String    @id @default(uuid())
   name      String    @unique
   status    String    @default("Active")
+  teacherId String?
+  teacher   User?     @relation(fields: [teacherId], references: [id])
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   students  Student[]
@@ -79,6 +82,7 @@ model Subject {
   code                String               @unique
   maxScore            Float                @default(100.0)
   status              String               @default("Active")
+  isCore              Boolean              @default(false)
   order               Int                  @default(0)
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt

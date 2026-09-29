@@ -1,5 +1,40 @@
 import { GradeDefinition, ScoreCalculationResult, TrendStatus } from '../types';
 
+export function calculateAggregate(
+  scores: { gradePoint: number | null, isCore?: boolean }[]
+): number | null {
+  let aggregate = 0;
+  let coreCount = 0;
+  let totalCores = scores.filter(s => s.isCore).length; // Depending on how many cores the student took? No, total cores set by admin. Let's assume the caller passes the required core count or we check how many they passed.
+  // Actually, the caller just passes the scores. A subject is core if isCore is true.
+  
+  const otherScores: number[] = [];
+
+  for (const s of scores) {
+    if (s.gradePoint === null || s.gradePoint === undefined) continue;
+    if (s.isCore) {
+      aggregate += s.gradePoint;
+      coreCount++;
+    } else {
+      otherScores.push(s.gradePoint);
+    }
+  }
+
+  // If they don't have enough core subjects, wait, how many cores? We can't hardcode 4 anymore. 
+  // Let's assume if they miss ANY core subject, they get null. But we don't know total cores here.
+  // We'll let the caller decide if the aggregate is valid. We'll just calculate based on what they have.
+  // Wait, the prompt: "looks for other two subjewcts with best aggragtes and add"
+  // So we add all their core subjects' grade points, plus the best 2 of the remaining.
+  if (otherScores.length < 2) {
+    return null;
+  }
+
+  otherScores.sort((a, b) => a - b);
+  aggregate += otherScores[0] + otherScores[1];
+
+  return aggregate;
+}
+
 export function calculateGradeForScore(
   rawScore: number | null | undefined,
   maxScore: number = 100,

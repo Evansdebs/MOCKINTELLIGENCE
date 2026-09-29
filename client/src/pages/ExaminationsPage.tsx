@@ -109,7 +109,7 @@ export const ExaminationsPage: React.FC = () => {
   const [compareMode, setCompareMode] = useState(false);
   const [selectedCompareIds, setSelectedCompareIds] = useState<string[]>([]);
   const [classFilter, setClassFilter] = useState('all');
-  const [classesList, setClassesList] = useState<string[]>([]);
+  const [classesList, setClassesList] = useState<any[]>([]);
   const [multiMockResult, setMultiMockResult] = useState<MultiMockResult | null>(null);
   const [comparisonLoading, setComparisonLoading] = useState(false);
   const [comparisonTab, setComparisonTab] = useState<'kpis' | 'subjects' | 'chart'>('kpis');
@@ -412,7 +412,7 @@ export const ExaminationsPage: React.FC = () => {
                 className="px-3 py-1.5 bg-white border border-violet-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-400"
               >
                 <option value="all">All Classes</option>
-                {classesList.map(c => <option key={c} value={c}>{c}</option>)}
+                {classesList.map(c => <option key={c.id || c} value={c.id || c}>{c.name || c}</option>)}
               </select>
             </div>
           </div>
