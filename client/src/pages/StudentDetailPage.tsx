@@ -12,7 +12,7 @@ import {
   BookOpen,
   Printer,
   ChevronRight,
-  Sparkles,
+  Activity,
 } from 'lucide-react';
 import {
   LineChart,
@@ -110,7 +110,7 @@ export const StudentDetailPage: React.FC = () => {
       case 'Fluctuating':
         return (
           <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
-            <Sparkles className="w-3.5 h-3.5" /> Fluctuating
+            <Activity className="w-3.5 h-3.5" /> Fluctuating
           </span>
         );
       default:
@@ -144,7 +144,7 @@ export const StudentDetailPage: React.FC = () => {
       <div className="bg-white rounded-2xl p-6 md:p-8 border border-slate-200/80 shadow-sm relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-extrabold text-2xl shadow-lg shadow-blue-500/20">
+            <div className="w-16 h-16 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-extrabold text-2xl shadow-lg shadow-blue-500/20">
               {student.fullName.charAt(0)}
             </div>
             <div>

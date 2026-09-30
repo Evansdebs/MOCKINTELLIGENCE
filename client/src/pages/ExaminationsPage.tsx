@@ -16,7 +16,7 @@ import {
   Minus,
   ArrowRight,
   ArrowLeftRight,
-  Sparkles,
+  Activity,
   ChevronDown,
   ChevronUp,
   BookOpen,
@@ -333,7 +333,7 @@ export const ExaminationsPage: React.FC = () => {
             onClick={() => navigate('/analytics?tab=comparison')}
             className="px-3.5 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm hover:border-slate-300 transition-all"
           >
-            <Sparkles className="w-4 h-4 text-blue-500" />
+            <Activity className="w-4 h-4 text-blue-500" />
             <span>Full Intelligence</span>
           </button>
           {isAdmin && (
@@ -394,7 +394,7 @@ export const ExaminationsPage: React.FC = () => {
 
       {/* ===== MULTI-MOCK COMPARISON PANEL ===== */}
       {compareMode && (
-        <div className="bg-gradient-to-br from-violet-50 via-indigo-50 to-slate-50 rounded-2xl border border-violet-200 shadow-sm overflow-hidden">
+        <div className="bg-slate-50 rounded-2xl border border-violet-200 shadow-sm overflow-hidden">
           {/* Panel Header */}
           <div className="px-5 py-4 border-b border-violet-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
@@ -815,7 +815,7 @@ export const ExaminationsPage: React.FC = () => {
                     onClick={() => navigate('/analytics?tab=comparison')}
                     className="flex-1 max-w-xs py-2.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md shadow-violet-600/30 transition-all"
                   >
-                    <Sparkles className="w-4 h-4" />
+                    <Activity className="w-4 h-4" />
                     Open Full Intelligence Dashboard
                   </button>
                 </div>

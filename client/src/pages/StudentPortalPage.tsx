@@ -86,7 +86,7 @@ export const StudentPortalPage: React.FC = () => {
   return (
     <div className="space-y-8 animate-fadeIn max-w-5xl mx-auto">
       {/* Top Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-900 rounded-2xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
+      <div className="bg-slate-800 rounded-2xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
         <div className="absolute right-0 top-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
@@ -133,7 +133,7 @@ export const StudentPortalPage: React.FC = () => {
           <h3 className="text-xl font-extrabold text-slate-900 mt-1 truncate">{data.bestSubject?.subjectName || 'N/A'}</h3>
         </div>
 
-        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-5 border border-indigo-400 shadow-md card-glow text-white relative overflow-hidden">
+        <div className="bg-indigo-600 rounded-2xl p-5 border border-indigo-700 shadow-md card-glow text-white relative overflow-hidden">
           <div className="absolute right-0 top-0 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none" />
           <div className="relative z-10">
             <div className="w-10 h-10 rounded-xl bg-white/20 text-white flex items-center justify-center mb-3">

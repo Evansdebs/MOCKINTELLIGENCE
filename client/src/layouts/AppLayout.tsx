@@ -18,7 +18,7 @@ import {
   ChevronDown,
   UserCheck,
   TrendingUp,
-  Sparkles,
+  Activity,
   School,
   Moon,
   Sun,
@@ -71,7 +71,7 @@ export const AppLayout: React.FC = () => {
 
   if (user?.role === 'STUDENT') {
     navItems = [
-      { label: 'Student Portal', path: '/portal', icon: Sparkles, badge: 'New' }
+      { label: 'Student Portal', path: '/portal', icon: Activity, badge: 'New' }
     ];
   }
 
@@ -82,7 +82,7 @@ export const AppLayout: React.FC = () => {
         {/* Brand */}
         <div className="p-6 border-b border-slate-800/80">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
               <TrendingUp className="w-5 h-5" />
             </div>
             <div>

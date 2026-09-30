@@ -4,7 +4,7 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  Sparkles,
+  Activity,
   BarChart2,
   LineChart as LineChartIcon,
   Grid,
@@ -197,7 +197,7 @@ export const MockIntelligencePage: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 font-bold text-xs uppercase tracking-wider mb-1.5 border border-blue-200">
-            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+            <Activity className="w-3.5 h-3.5 text-blue-600" />
             Core Analytics Engine
           </div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
@@ -1081,7 +1081,7 @@ export const MockIntelligencePage: React.FC = () => {
             {/* Performance Alerts List */}
             <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="w-5 h-5 text-blue-600" />
+                <Activity className="w-5 h-5 text-blue-600" />
                 <h3 className="text-base font-extrabold text-slate-900">
                   Automated Academic Performance Alerts
                 </h3>

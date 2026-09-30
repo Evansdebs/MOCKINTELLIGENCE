@@ -13,7 +13,7 @@ import {
   Download,
   BarChart2,
   Printer,
-  Sparkles,
+  Activity,
   BookOpen,
 } from 'lucide-react';
 import {
@@ -109,13 +109,13 @@ export const DashboardPage: React.FC = () => {
   return (
     <div className="space-y-8 animate-fadeIn">
       {/* Top Banner & Quick Actions */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-900 rounded-2xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
+      <div className="bg-slate-800 rounded-2xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
         <div className="absolute right-0 top-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-semibold uppercase tracking-wider mb-2">
-              <Sparkles className="w-3.5 h-3.5" />
+              <Activity className="w-3.5 h-3.5" />
               Basic 9 BECE Performance Intelligence
             </div>
             <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
@@ -538,7 +538,7 @@ export const DashboardPage: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                <Sparkles className="w-4 h-4" />
+                <Activity className="w-4 h-4" />
               </div>
               <div>
                 <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
