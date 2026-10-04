@@ -29,12 +29,14 @@ import {
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { api } from '../services/api';
+import { ReportCardTemplate } from '../components/ReportCardTemplate';
 
 export const StudentDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   const [studentData, setStudentData] = useState<any>(null);
+  const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [generatingPDF, setGeneratingPDF] = useState(false);
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>('all');
@@ -48,8 +50,12 @@ export const StudentDetailPage: React.FC = () => {
   const loadStudentProfile = async (studentId: string) => {
     try {
       setLoading(true);
-      const res = await api.getStudentAnalytics(studentId);
+      const [res, settingsRes] = await Promise.all([
+        api.getStudentAnalytics(studentId),
+        api.getSettings()
+      ]);
       setStudentData(res);
+      setSettings(settingsRes.settings);
     } catch (err) {
       console.error(err);
     } finally {
@@ -137,52 +143,24 @@ export const StudentDetailPage: React.FC = () => {
     try {
       setGeneratingPDF(true);
       const doc = new jsPDF('p', 'mm', 'a4');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(22);
-      doc.setTextColor(15, 23, 42); // slate-900
-      doc.text('Candidate Performance Intelligence Report', 105, 20, { align: 'center' });
 
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Candidate: ${student.fullName}`, 14, 35);
-      doc.text(`Index Number: ${student.indexNumber}`, 14, 42);
-      doc.text(`Class: ${student.class}`, 14, 49);
-      doc.text(`Date Generated: ${new Date().toLocaleDateString()}`, 196, 35, { align: 'right' });
-
-      // Embed the AI Prediction
-      doc.setFont('helvetica', 'bold');
-      doc.text('Projected Final BECE Aggregate: ', 14, 65);
-      doc.setTextColor(79, 70, 229); // indigo-600
-      doc.text(`${predictedAggregate || 'N/A'}`, 85, 65);
-      doc.setTextColor(15, 23, 42);
-
-      // Now grab the chart using html2canvas
-      const chartEl = document.getElementById('performance-chart-container');
-      let currentY = 80;
-      if (chartEl) {
-        const canvas = await html2canvas(chartEl, { scale: 2, useCORS: true });
-        const imgData = canvas.toDataURL('image/png');
-        // A4 width is 210, margins are 14. 210 - 28 = 182 max width
-        doc.addImage(imgData, 'PNG', 14, currentY, 182, 90);
-        currentY += 100;
+      // We will capture the newly added ReportCardTemplate which is rendered visibly on screen or hidden.
+      // Actually, since StudentDetailPage still renders its own layout, we can render a hidden ReportCardTemplate just for PDF generation, or capture the main screen.
+      // Let's assume we capture the element with id 'report-card-export' if we add one, or the main container.
+      
+      const reportEl = document.getElementById('report-card-export');
+      if (!reportEl) {
+         throw new Error("Report template not found in DOM");
       }
-
-      // Remedial subjects
-      if (remedialSubjects.length > 0) {
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(225, 29, 72); // rose-600
-        doc.text('Weakness Identification & Remedial Alerts', 14, currentY);
-        doc.setFontSize(11);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(15, 23, 42);
-        currentY += 10;
-        remedialSubjects.forEach((sub: any) => {
-          doc.text(`• ${sub.subjectName}: ${sub.recommendation || 'Needs immediate attention'}`, 14, currentY);
-          currentY += 7;
-        });
-      }
-
+      
+      const canvas = await html2canvas(reportEl, { scale: 2, useCORS: true });
+      const imgData = canvas.toDataURL('image/png');
+      
+      // Calculate width and height for A4
+      const pdfWidth = doc.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       doc.save(`${student.indexNumber}_Intelligence_Report.pdf`);
     } catch (err) {
       console.error(err);
@@ -577,6 +555,35 @@ export const StudentDetailPage: React.FC = () => {
             </Link>
           ))}
         </div>
+      </div>
+      
+      {/* Hidden container for PDF Generation */}
+      <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+        <ReportCardTemplate 
+          data={{
+            student,
+            school: settings,
+            examination: { name: 'PERFORMANCE REPORT', academicYear: 'LONGITUDINAL' },
+            summary: {
+              totalScore: mockTimeline.length > 0 ? mockTimeline[mockTimeline.length - 1].totalScore : 0,
+              average: mockTimeline.length > 0 ? mockTimeline[mockTimeline.length - 1].average : 0,
+              subjectsPassed: mockTimeline.length > 0 ? Object.values(mockTimeline[mockTimeline.length - 1].scores || {}).filter((s:any) => s.percentage >= 50).length : 0,
+              subjectsAttempted: mockTimeline.length > 0 ? Object.values(mockTimeline[mockTimeline.length - 1].scores || {}).length : 0,
+              bestSubject: bestSubject?.subjectName || 'N/A',
+              weakestSubject: weakestSubject?.subjectName || 'N/A',
+              aggregate: predictedAggregate || 'N/A'
+            },
+            scores: mockTimeline.length > 0 ? Object.entries(mockTimeline[mockTimeline.length - 1].scores || {}).map(([subjectId, sc]: any) => ({
+              subject: { name: subjectTrends.find((t:any) => t.subjectId === subjectId)?.subjectName || 'Subject' },
+              rawScore: sc.rawScore,
+              percentage: sc.percentage,
+              grade: sc.grade,
+              remark: sc.remark
+            })) : []
+          }} 
+          chartData={mockTimeline.map((m: any) => ({ mockName: m.examName, Average: m.average }))} 
+          remedialSubjects={remedialSubjects} 
+        />
       </div>
     </div>
   );

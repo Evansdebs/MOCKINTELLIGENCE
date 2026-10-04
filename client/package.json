@@ -10,15 +10,18 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.66.0",
+    "@types/react-signature-canvas": "^1.0.7",
     "clsx": "^2.1.1",
     "framer-motion": "^12.4.3",
     "html2canvas": "^1.4.1",
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.4",
+    "jszip": "^3.10.2",
     "lucide-react": "^0.475.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.29.0",
+    "react-signature-canvas": "^1.1.0-alpha.2",
     "recharts": "^2.15.1",
     "tailwind-merge": "^3.0.1",
     "xlsx": "^0.18.5"

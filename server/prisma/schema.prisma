@@ -53,6 +53,7 @@ model SchoolSettings {
   teachersCanEditScores           Boolean  @default(true)
   beceStartDate                   DateTime?
   beceTimetable                   String?
+  headteacherSignature            String?
   updatedAt                       DateTime @updatedAt
 }
 

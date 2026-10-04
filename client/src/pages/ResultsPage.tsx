@@ -13,8 +13,12 @@ import {
   Table,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import html2canvas from 'html2canvas';
+import { createRoot } from 'react-dom/client';
+import jsPDF from 'jspdf';
 import { api } from '../services/api';
 import { Examination, Student } from '../types';
+import { ReportCardTemplate } from '../components/ReportCardTemplate';
 
 export const ResultsPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -31,6 +35,7 @@ export const ResultsPage: React.FC = () => {
   const [studentResult, setStudentResult] = useState<any>(null);
   const [classResult, setClassResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [downloadingReports, setDownloadingReports] = useState(false);
 
   useEffect(() => {
     init();
@@ -143,6 +148,62 @@ export const ResultsPage: React.FC = () => {
     XLSX.writeFile(workbook, `${classResult.examination?.name}_Results.xlsx`);
   };
 
+  const handleDownloadClassReports = async () => {
+    if (!classResult || !classResult.students || classResult.students.length === 0) return;
+    try {
+      setDownloadingReports(true);
+      const doc = new jsPDF('p', 'mm', 'a4');
+      
+      // Create a hidden container in the body
+      const hiddenContainer = document.createElement('div');
+      hiddenContainer.style.position = 'absolute';
+      hiddenContainer.style.left = '-9999px';
+      hiddenContainer.style.top = '0';
+      document.body.appendChild(hiddenContainer);
+
+      for (let i = 0; i < classResult.students.length; i++) {
+        const student = classResult.students[i];
+        const res = await api.getStudentResult(student.studentId, selectedExamId);
+        
+        if (i > 0) doc.addPage();
+        
+        // Render the beautiful template off-screen
+        const root = createRoot(hiddenContainer);
+        
+        await new Promise<void>((resolve) => {
+          root.render(
+            <ReportCardTemplate 
+              data={res} 
+              chartData={[]} 
+              remedialSubjects={res.remedialSubjects} 
+            />
+          );
+          // Wait a tick for DOM update
+          setTimeout(() => resolve(), 100);
+        });
+        
+        const reportEl = hiddenContainer.querySelector('#report-card-export') as HTMLElement;
+        if (reportEl) {
+          const canvas = await html2canvas(reportEl, { scale: 2, useCORS: true });
+          const imgData = canvas.toDataURL('image/png');
+          const pdfWidth = doc.internal.pageSize.getWidth();
+          const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+          doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        }
+        
+        root.unmount();
+      }
+      
+      document.body.removeChild(hiddenContainer);
+      doc.save(`Class_Reports_${selectedExamId}.pdf`);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to generate bulk reports');
+    } finally {
+      setDownloadingReports(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Controls Bar (Hidden in Print) */}
@@ -221,193 +282,44 @@ export const ResultsPage: React.FC = () => {
 
         <div className="flex items-center gap-2">
           {activeView === 'class' && (
+            <>
+              <button
+                onClick={handleExportExcel}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-emerald-600/30 transition-all"
+              >
+                <Table className="w-4 h-4" />
+                <span>Export Excel</span>
+              </button>
+              <button
+                onClick={handleDownloadClassReports}
+                disabled={downloadingReports}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-blue-600/30 transition-all disabled:opacity-50"
+              >
+                <Download className="w-4 h-4" />
+                <span>{downloadingReports ? 'Generating PDF...' : 'Download Class Reports'}</span>
+              </button>
+            </>
+          )}
+          {activeView === 'slip' && (
             <button
-              onClick={handleExportExcel}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-emerald-600/30 transition-all"
+              onClick={handlePrint}
+              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-slate-900/30 transition-all"
             >
-              <Table className="w-4 h-4" />
-              <span>Export Excel</span>
+              <Printer className="w-4 h-4" />
+              <span>Print Slip</span>
             </button>
           )}
-          <button
-            onClick={handlePrint}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-blue-600/30 transition-all"
-          >
-            <Printer className="w-4 h-4" />
-            <span>Print Slip</span>
-          </button>
         </div>
       </div>
 
       {/* VIEW 1: CANDIDATE RESULT SLIP (Section 17) */}
       {activeView === 'slip' && studentResult && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 md:p-10 max-w-4xl mx-auto print:border-none print:shadow-none print:p-0">
-          {/* Official School Header */}
-          <div className="flex flex-col md:flex-row items-center justify-between pb-6 border-b-2 border-slate-900 gap-4">
-            {/* Left Logo */}
-            {studentResult.school?.logoUrl ? (
-              <img src={studentResult.school.logoUrl} alt="School Logo Left" className="w-16 h-16 md:w-24 md:h-24 object-contain shrink-0" />
-            ) : (
-              <div className="w-16 h-16 md:w-24 md:h-24 shrink-0 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xl">
-                <School className="w-8 h-8 md:w-10 md:h-10" />
-              </div>
-            )}
-            
-            {/* Center Text */}
-            <div className="text-center flex-1 px-2">
-              <h1 className="text-xl md:text-2xl font-black text-slate-900 uppercase tracking-wide leading-tight">
-                {studentResult.school?.schoolName || 'Achimota Basic Model School'}
-              </h1>
-              <p className="text-[10px] md:text-xs text-slate-600 mt-1">
-                {studentResult.school?.address || 'P.O. Box AH 123, Achimota, Accra - Ghana'} • Tel: {studentResult.school?.telephone}
-              </p>
-              <p className="text-[10px] md:text-xs italic text-blue-700 font-serif mt-1">
-                "{studentResult.school?.motto || 'Excellence, Character and Innovation'}"
-              </p>
-              <div className="mt-3 md:mt-4 inline-block px-3 md:px-4 py-1 md:py-1.5 rounded-full bg-slate-100 text-slate-900 font-extrabold text-[10px] md:text-xs uppercase tracking-wider border border-slate-300">
-                {studentResult.examination?.name} RESULT SLIP ({studentResult.examination?.academicYear})
-              </div>
-            </div>
-
-            {/* Right Logo */}
-            {studentResult.school?.logoUrl ? (
-              <img src={studentResult.school.logoUrl} alt="School Logo Right" className="w-16 h-16 md:w-24 md:h-24 object-contain shrink-0 hidden md:block print:block" />
-            ) : (
-              <div className="w-16 h-16 md:w-24 md:h-24 shrink-0 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xl hidden md:flex print:flex">
-                <School className="w-8 h-8 md:w-10 md:h-10" />
-              </div>
-            )}
-          </div>
-
-          {/* Student Profile Metadata Box */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 px-5 bg-slate-50 rounded-xl my-6 border border-slate-200 text-xs">
-            <div>
-              <span className="text-slate-400 block text-[10px] uppercase font-bold">Candidate Name</span>
-              <span className="font-extrabold text-slate-900 text-sm">
-                {studentResult.student?.fullName}
-              </span>
-            </div>
-            <div>
-              <span className="text-slate-400 block text-[10px] uppercase font-bold">Index Number</span>
-              <span className="font-mono font-extrabold text-slate-900 text-sm">
-                {studentResult.student?.indexNumber}
-              </span>
-            </div>
-            <div>
-              <span className="text-slate-400 block text-[10px] uppercase font-bold">Class & House</span>
-              <span className="font-semibold text-slate-800">
-                {studentResult.student?.classRoom?.name || studentResult.student?.class} • {studentResult.student?.house || 'N/A'}
-              </span>
-            </div>
-            <div>
-              <span className="text-slate-400 block text-[10px] uppercase font-bold">Class Position</span>
-              <span className="font-extrabold text-blue-700 text-sm">
-                {studentResult.summary?.position || 'N/A'}
-              </span>
-            </div>
-          </div>
-
-          {/* Subject Scores Table */}
-          <div className="overflow-x-auto my-6 border border-slate-200 rounded-xl">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-100 text-slate-700 font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-200">
-                <tr>
-                  <th className="py-3 px-4">Subject</th>
-                  <th className="py-3 px-3 text-center">Raw Score</th>
-                  <th className="py-3 px-3 text-center">Percentage</th>
-                  <th className="py-3 px-3 text-center">Grade</th>
-                  <th className="py-3 px-4">Remark</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {studentResult.scores?.map((sc: any) => (
-                  <tr key={sc.id} className="hover:bg-slate-50/50">
-                    <td className="py-3 px-4 font-bold text-slate-900">{sc.subject.name}</td>
-                    <td className="py-3 px-3 text-center font-mono font-medium text-slate-700">
-                      {sc.rawScore !== null ? sc.rawScore : '—'}
-                    </td>
-                    <td className="py-3 px-3 text-center font-bold text-slate-900">
-                      {sc.percentage !== null ? `${sc.percentage}%` : '—'}
-                    </td>
-                    <td className="py-3 px-3 text-center">
-                      <span
-                        className={`inline-block px-2.5 py-0.5 rounded font-extrabold text-xs ${
-                          sc.grade === 'A'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : sc.grade === 'B'
-                            ? 'bg-blue-100 text-blue-800'
-                            : sc.grade === 'C'
-                            ? 'bg-indigo-100 text-indigo-800'
-                            : sc.grade === 'D'
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-rose-100 text-rose-800'
-                        }`}
-                      >
-                        {sc.grade || '—'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-slate-600 font-medium">{sc.remark || '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Performance Summary Footnotes */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-xl bg-blue-50/60 border border-blue-200/70 text-xs">
-            <div>
-              <span className="text-[10px] uppercase font-bold text-blue-800 block">Overall Mean</span>
-              <span className="text-xl font-black text-blue-900">
-                {studentResult.summary?.average ? `${studentResult.summary.average}%` : '—'}
-              </span>
-            </div>
-            <div>
-              <span className="text-[10px] uppercase font-bold text-blue-800 block">Aggregate</span>
-              <span className="text-xl font-black text-slate-900">
-                {studentResult.summary?.aggregate ?? '—'}
-              </span>
-            </div>
-            <div>
-              <span className="text-[10px] uppercase font-bold text-blue-800 block">Total Marks</span>
-              <span className="text-xl font-black text-slate-900">
-                {studentResult.summary?.totalScore ?? '—'}
-              </span>
-            </div>
-            <div>
-              <span className="text-[10px] uppercase font-bold text-blue-800 block">Subjects Passed</span>
-              <span className="text-xl font-black text-emerald-700">
-                {studentResult.summary?.subjectsPassed ?? 0}
-                <span className="text-xs font-normal text-slate-500">
-                  {' '}
-                  / {studentResult.summary?.subjectsAttempted ?? 0}
-                </span>
-              </span>
-            </div>
-            <div>
-              <span className="text-[10px] uppercase font-bold text-blue-800 block">Best / Weakest</span>
-              <span className="text-xs font-bold text-slate-800 block truncate">
-                Best: {studentResult.summary?.bestSubject || '—'}
-              </span>
-              <span className="text-[11px] text-amber-800 block truncate">
-                Weak: {studentResult.summary?.weakestSubject || '—'}
-              </span>
-            </div>
-          </div>
-
-          {/* Signatures */}
-          <div className="mt-12 pt-8 border-t border-slate-300 flex justify-between text-xs text-slate-600">
-            <div>
-              <div className="w-44 border-b border-slate-400 mb-1" />
-              <p className="font-semibold text-slate-800">Class Teacher's Signature</p>
-            </div>
-            <div className="text-right">
-              <div className="w-44 border-b border-slate-400 mb-1 ml-auto" />
-              <p className="font-semibold text-slate-800">
-                {studentResult.school?.headteacherName || "Headteacher's Signature"}
-              </p>
-              <p className="text-[10px] text-slate-400">Date Generated: {new Date().toLocaleDateString()}</p>
-            </div>
-          </div>
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 max-w-4xl mx-auto overflow-x-auto print:border-none print:shadow-none print:p-0">
+          <ReportCardTemplate 
+            data={studentResult} 
+            chartData={[]} // In ResultsPage we don't have historical chart data easily available unless fetched, but the template can handle empty chart
+            remedialSubjects={studentResult.remedialSubjects} 
+          />
         </div>
       )}
 

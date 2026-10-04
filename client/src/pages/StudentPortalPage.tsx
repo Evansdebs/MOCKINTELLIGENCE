@@ -13,6 +13,7 @@ import {
   Area,
   AreaChart,
 } from 'recharts';
+import { ReportCardTemplate } from '../components/ReportCardTemplate';
 
 export const StudentPortalPage: React.FC = () => {
   const { user } = useAuth();
@@ -487,9 +488,18 @@ export const StudentPortalPage: React.FC = () => {
                 <p className="font-semibold text-slate-900">Form Master / Mistress</p>
                 <p className="text-[10px] text-slate-500 italic mt-0.5">Sign & Date</p>
               </div>
-              <div className="text-right">
+              <div className="text-right relative">
+                {studentResult.school?.headteacherSignature && (
+                  <img
+                    src={studentResult.school.headteacherSignature}
+                    alt="Headteacher Signature"
+                    className="h-12 object-contain ml-auto absolute bottom-10 right-4"
+                  />
+                )}
                 <div className="w-44 border-b border-slate-400 mb-1 inline-block" />
-                <p className="font-semibold text-slate-900">Head of School</p>
+                <p className="font-semibold text-slate-900">
+                  {studentResult.school?.headteacherName || "Head of School"}
+                </p>
                 <p className="text-[10px] text-slate-500 italic mt-0.5">Official Stamp & Date</p>
               </div>
             </div>

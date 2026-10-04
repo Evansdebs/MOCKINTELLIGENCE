@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Settings, Save, School, Award, Sliders, CheckCircle2, Plus, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Settings, Save, School, Award, Sliders, CheckCircle2, Plus, Trash2, Eraser } from 'lucide-react';
+import SignatureCanvas from 'react-signature-canvas';
 import { api } from '../services/api';
 import { GradeScale } from '../types';
 
@@ -22,6 +23,10 @@ export const SettingsPage: React.FC = () => {
   const [enableRanking, setEnableRanking] = useState(true);
   const [beceStartDate, setBeceStartDate] = useState('');
   const [beceTimetable, setBeceTimetable] = useState('');
+  const [headteacherSignature, setHeadteacherSignature] = useState('');
+  
+  const sigCanvas = useRef<any>(null);
+  const [showSignaturePad, setShowSignaturePad] = useState(false);
 
   // Analytics Engine Thresholds
   const [passThreshold, setPassThreshold] = useState(50.0);
@@ -65,6 +70,7 @@ export const SettingsPage: React.FC = () => {
           setBeceStartDate(new Date(s.beceStartDate).toISOString().split('T')[0]);
         }
         setBeceTimetable(s.beceTimetable || '');
+        setHeadteacherSignature(s.headteacherSignature || '');
       }
       if (res.gradeScales) {
         setGradeScales(res.gradeScales);
@@ -98,6 +104,7 @@ export const SettingsPage: React.FC = () => {
         teachersCanEditScores,
         beceStartDate,
         beceTimetable,
+        headteacherSignature,
       });
       setSuccessMessage('School settings saved successfully.');
       setTimeout(() => setSuccessMessage(null), 3500);
@@ -247,16 +254,107 @@ export const SettingsPage: React.FC = () => {
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Principal / Headteacher Name
-              </label>
-              <input
-                type="text"
-                value={headteacherName}
-                onChange={(e) => setHeadteacherName(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+            <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Principal / Headteacher Name
+                </label>
+                <input
+                  type="text"
+                  value={headteacherName}
+                  onChange={(e) => setHeadteacherName(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Headteacher Signature
+                </label>
+                <div className="space-y-3">
+                  {!showSignaturePad ? (
+                    <div className="flex items-center gap-4">
+                      {headteacherSignature && (
+                        <img src={headteacherSignature} alt="Signature" className="h-12 object-contain bg-slate-50 border border-slate-200 rounded-lg p-1" />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setShowSignaturePad(true)}
+                        className="px-3 py-1.5 text-xs font-semibold bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors border border-blue-200"
+                      >
+                        {headteacherSignature ? 'Change Signature' : 'Draw Signature'}
+                      </button>
+                      {headteacherSignature && (
+                        <button type="button" onClick={() => setHeadteacherSignature('')} className="text-xs text-rose-500 font-semibold hover:text-rose-600 transition-colors">
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="border border-slate-300 rounded-xl overflow-hidden bg-white max-w-sm w-full shadow-sm">
+                      <div className="bg-slate-50 border-b border-slate-200 px-3 py-2 flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Sign below</span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => sigCanvas.current?.clear()}
+                            className="text-[10px] font-bold text-slate-500 hover:text-slate-700 flex items-center gap-1"
+                          >
+                            <Eraser className="w-3 h-3" /> Clear
+                          </button>
+                        </div>
+                      </div>
+                      <div className="bg-slate-100/50">
+                        <SignatureCanvas
+                          ref={(ref) => { sigCanvas.current = ref; }}
+                          penColor="black"
+                          canvasProps={{ width: 382, height: 128, className: 'cursor-crosshair' }}
+                        />
+                      </div>
+                      <div className="bg-slate-50 border-t border-slate-200 p-2 flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setShowSignaturePad(false);
+                          }}
+                          className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            try {
+                              if (!sigCanvas.current) {
+                                alert('Signature pad not initialized.');
+                                return;
+                              }
+                              if (sigCanvas.current.isEmpty()) {
+                                alert('Please draw a signature first before saving.');
+                                return;
+                              }
+                              // Using getCanvas() instead of getTrimmedCanvas() to avoid Vite/bundler module issues with trim-canvas
+                              const dataUrl = sigCanvas.current.getCanvas().toDataURL('image/png');
+                              setHeadteacherSignature(dataUrl);
+                              setShowSignaturePad(false);
+                            } catch (err: any) {
+                              console.error(err);
+                              alert('Error saving signature: ' + err.message);
+                            }
+                          }}
+                          className="px-3 py-1.5 text-xs font-semibold bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-sm"
+                        >
+                          Save Signature
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div>

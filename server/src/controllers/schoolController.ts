@@ -57,6 +57,7 @@ export async function updateSettings(req: AuthRequest, res: Response): Promise<v
       teachersCanEditScores,
       beceStartDate,
       beceTimetable,
+      headteacherSignature,
     } = req.body;
 
     const old = await prisma.schoolSettings.findFirst();
@@ -82,6 +83,7 @@ export async function updateSettings(req: AuthRequest, res: Response): Promise<v
         teachersCanEditScores: teachersCanEditScores !== undefined ? Boolean(teachersCanEditScores) : true,
         beceStartDate: beceStartDate ? new Date(beceStartDate) : null,
         beceTimetable: beceTimetable || null,
+        headteacherSignature: headteacherSignature || null,
       },
       create: {
         schoolName,
@@ -100,6 +102,7 @@ export async function updateSettings(req: AuthRequest, res: Response): Promise<v
         teachersCanEditScores: teachersCanEditScores !== undefined ? Boolean(teachersCanEditScores) : true,
         beceStartDate: beceStartDate ? new Date(beceStartDate) : null,
         beceTimetable: beceTimetable || null,
+        headteacherSignature: headteacherSignature || null,
       },
     });
 
