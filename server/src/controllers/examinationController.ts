@@ -389,3 +389,30 @@ export async function getExamSnapshot(req: AuthRequest, res: Response): Promise<
   }
 }
 
+export async function deleteExamination(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const id = req.params.id as string;
+    const exam = await prisma.examination.findUnique({ where: { id } });
+
+    if (!exam) {
+      res.status(404).json({ error: 'Examination not found.' });
+      return;
+    }
+
+    await prisma.examination.delete({ where: { id } });
+
+    await logAudit({
+      userId: req.user?.userId,
+      userName: req.user?.name || 'Admin',
+      action: 'DELETE_EXAMINATION',
+      recordType: 'Examination',
+      recordId: id,
+      newValue: `Deleted examination: ${exam.name}`,
+      ipAddress: req.ip,
+    });
+
+    res.json({ message: 'Examination deleted successfully.' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to delete examination.' });
+  }
+}

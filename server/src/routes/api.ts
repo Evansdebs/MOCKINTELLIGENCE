@@ -28,8 +28,8 @@ router.get('/auth/me', authenticate, authController.me);
 
 // ==================== SCHOOL SETTINGS & GRADES ====================
 router.get('/settings', authenticate, schoolController.getSettings);
-router.put('/settings', authenticate, authorize(['ADMIN']), schoolController.updateSettings);
-router.put('/settings/grades', authenticate, authorize(['ADMIN']), schoolController.updateGradeScales);
+router.put('/settings', authenticate, authorize(['ADMIN', 'MANAGEMENT', 'TEACHER']), schoolController.updateSettings);
+router.put('/settings/grades', authenticate, authorize(['ADMIN', 'MANAGEMENT']), schoolController.updateGradeScales);
 
 // ==================== CLASSROOMS ====================
 router.get('/classrooms', authenticate, classRoomController.getClassRooms);
@@ -62,6 +62,7 @@ router.put('/examinations/:id', authenticate, authorize(['ADMIN']), examinationC
 router.post('/examinations/:id/complete', authenticate, authorize(['ADMIN']), examinationController.completeExamination);
 router.post('/examinations/:id/lock', authenticate, authorize(['ADMIN']), examinationController.lockExamination);
 router.post('/examinations/:id/unlock', authenticate, authorize(['ADMIN']), examinationController.unlockExamination);
+router.delete('/examinations/:id', authenticate, authorize(['ADMIN']), examinationController.deleteExamination);
 
 // ==================== SCORES ====================
 router.get('/scores/sheet', authenticate, scoreController.getScoreSheet);

@@ -55,6 +55,8 @@ export async function updateSettings(req: AuthRequest, res: Response): Promise<v
       consecutiveBelowTargetAlertCount,
       studentsCanDownloadSlips,
       teachersCanEditScores,
+      beceStartDate,
+      beceTimetable,
     } = req.body;
 
     const old = await prisma.schoolSettings.findFirst();
@@ -78,6 +80,8 @@ export async function updateSettings(req: AuthRequest, res: Response): Promise<v
         consecutiveBelowTargetAlertCount: Number(consecutiveBelowTargetAlertCount) || 3,
         studentsCanDownloadSlips: studentsCanDownloadSlips !== undefined ? Boolean(studentsCanDownloadSlips) : true,
         teachersCanEditScores: teachersCanEditScores !== undefined ? Boolean(teachersCanEditScores) : true,
+        beceStartDate: beceStartDate ? new Date(beceStartDate) : null,
+        beceTimetable: beceTimetable || null,
       },
       create: {
         schoolName,
@@ -94,6 +98,8 @@ export async function updateSettings(req: AuthRequest, res: Response): Promise<v
         stableThreshold: Number(stableThreshold) || 1.0,
         studentsCanDownloadSlips: studentsCanDownloadSlips !== undefined ? Boolean(studentsCanDownloadSlips) : true,
         teachersCanEditScores: teachersCanEditScores !== undefined ? Boolean(teachersCanEditScores) : true,
+        beceStartDate: beceStartDate ? new Date(beceStartDate) : null,
+        beceTimetable: beceTimetable || null,
       },
     });
 

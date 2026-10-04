@@ -88,6 +88,7 @@ export const api = {
   completeExamination: (id: string) => request<any>(`/examinations/${id}/complete`, { method: 'POST' }),
   lockExamination: (id: string) => request<any>(`/examinations/${id}/lock`, { method: 'POST' }),
   unlockExamination: (id: string, reason?: string) => request<any>(`/examinations/${id}/unlock`, { method: 'POST', body: JSON.stringify({ reason }) }),
+  deleteExamination: (id: string) => request<any>(`/examinations/${id}`, { method: 'DELETE' }),
 
   // Scores
   getScoreSheet: (params: { examinationId: string; subjectId?: string; classId?: string }) => {

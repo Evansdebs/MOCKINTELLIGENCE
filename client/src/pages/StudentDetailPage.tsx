@@ -13,6 +13,7 @@ import {
   Printer,
   ChevronRight,
   Activity,
+  AlertTriangle,
 } from 'lucide-react';
 import {
   LineChart,
@@ -24,8 +25,9 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
-  Legend,
 } from 'recharts';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import { api } from '../services/api';
 
 export const StudentDetailPage: React.FC = () => {
@@ -34,6 +36,7 @@ export const StudentDetailPage: React.FC = () => {
 
   const [studentData, setStudentData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [generatingPDF, setGeneratingPDF] = useState(false);
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>('all');
 
   useEffect(() => {
@@ -85,7 +88,10 @@ export const StudentDetailPage: React.FC = () => {
     bestSubject,
     weakestSubject,
     subjectTrends,
+    predictedAggregate,
   } = studentData;
+
+  const remedialSubjects = subjectTrends.filter((s: any) => s.status === 'danger' || s.status === 'warning' || (s.predictedScore !== null && s.predictedScore < 50));
 
   const getTrendBadge = (trend: string) => {
     switch (trend) {
@@ -127,16 +133,83 @@ export const StudentDetailPage: React.FC = () => {
       ? subjectTrends.find((s: any) => s.subjectId === selectedSubjectId)
       : null;
 
+  const handlePrintReport = async () => {
+    try {
+      setGeneratingPDF(true);
+      const doc = new jsPDF('p', 'mm', 'a4');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(22);
+      doc.setTextColor(15, 23, 42); // slate-900
+      doc.text('Candidate Performance Intelligence Report', 105, 20, { align: 'center' });
+
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Candidate: ${student.fullName}`, 14, 35);
+      doc.text(`Index Number: ${student.indexNumber}`, 14, 42);
+      doc.text(`Class: ${student.class}`, 14, 49);
+      doc.text(`Date Generated: ${new Date().toLocaleDateString()}`, 196, 35, { align: 'right' });
+
+      // Embed the AI Prediction
+      doc.setFont('helvetica', 'bold');
+      doc.text('Projected Final BECE Aggregate: ', 14, 65);
+      doc.setTextColor(79, 70, 229); // indigo-600
+      doc.text(`${predictedAggregate || 'N/A'}`, 85, 65);
+      doc.setTextColor(15, 23, 42);
+
+      // Now grab the chart using html2canvas
+      const chartEl = document.getElementById('performance-chart-container');
+      let currentY = 80;
+      if (chartEl) {
+        const canvas = await html2canvas(chartEl, { scale: 2, useCORS: true });
+        const imgData = canvas.toDataURL('image/png');
+        // A4 width is 210, margins are 14. 210 - 28 = 182 max width
+        doc.addImage(imgData, 'PNG', 14, currentY, 182, 90);
+        currentY += 100;
+      }
+
+      // Remedial subjects
+      if (remedialSubjects.length > 0) {
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(225, 29, 72); // rose-600
+        doc.text('Weakness Identification & Remedial Alerts', 14, currentY);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(15, 23, 42);
+        currentY += 10;
+        remedialSubjects.forEach((sub: any) => {
+          doc.text(`• ${sub.subjectName}: ${sub.recommendation || 'Needs immediate attention'}`, 14, currentY);
+          currentY += 7;
+        });
+      }
+
+      doc.save(`${student.indexNumber}_Intelligence_Report.pdf`);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to generate PDF report.');
+    } finally {
+      setGeneratingPDF(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Back button */}
-      <div>
+      {/* Back button and Print button */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <button
           onClick={() => navigate('/students')}
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to All Learners</span>
+        </button>
+        <button 
+          onClick={handlePrintReport}
+          disabled={generatingPDF}
+          className="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm disabled:opacity-50"
+        >
+          <Printer className="w-4 h-4" />
+          {generatingPDF ? 'Generating...' : 'Print Full Report'}
         </button>
       </div>
 
@@ -245,8 +318,70 @@ export const StudentDetailPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Advanced Predictive Analytics Section */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* BECE Prediction Card */}
+        <div className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-2xl p-6 text-white shadow-lg flex flex-col justify-between">
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-indigo-200 text-xs font-bold uppercase tracking-wider mb-4 border border-white/10">
+              <Activity className="w-3.5 h-3.5" />
+              AI Prediction Model
+            </div>
+            <h3 className="text-sm font-medium text-slate-300">Projected Final BECE Aggregate</h3>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-5xl font-black tracking-tighter">
+                {predictedAggregate ?? 'N/A'}
+              </span>
+              <span className="text-slate-400 text-sm font-semibold">Points</span>
+            </div>
+          </div>
+          <p className="text-xs text-indigo-300 mt-6 leading-relaxed">
+            Based on the student's mock trajectory, weighted recent performances, and class benchmarking.
+          </p>
+        </div>
+
+        {/* Weakness Identification & Remedial Alerts */}
+        <div className="md:col-span-2 bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-base font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-500" />
+                Weakness Identification & Remedial Flags
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Automatically highlighted subjects requiring immediate teacher intervention
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto pr-2 space-y-3 max-h-48">
+            {remedialSubjects.length > 0 ? (
+              remedialSubjects.map((sub: any) => (
+                <div key={sub.subjectId} className={`p-3 rounded-xl border ${sub.status === 'danger' ? 'bg-rose-50 border-rose-100' : 'bg-amber-50 border-amber-100'} flex items-start gap-3`}>
+                  <div className={`mt-0.5 p-1.5 rounded-lg ${sub.status === 'danger' ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'}`}>
+                    <TrendingDown className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-800">{sub.subjectName} <span className="text-xs font-semibold text-slate-500">({sub.subjectCode})</span></h4>
+                    <p className={`text-xs mt-1 font-medium ${sub.status === 'danger' ? 'text-rose-700' : 'text-amber-700'}`}>
+                      {sub.recommendation || `Predicted Score: ${sub.predictedScore}% (Below safe threshold)`}
+                    </p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-slate-400 p-4">
+                <CheckCircle2 className="w-8 h-8 mb-2 text-emerald-400" />
+                <p className="text-sm font-semibold text-slate-600">No major weaknesses detected</p>
+                <p className="text-xs mt-1 text-center">Student is performing consistently well across all registered subjects.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Main Longitudinal Performance Timeline Chart (Section 22) */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
+      <div id="performance-chart-container" className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
@@ -263,7 +398,7 @@ export const StudentDetailPage: React.FC = () => {
 
         <div className="h-72 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={mockTimeline}>
+            <BarChart data={mockTimeline}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="examName" tick={{ fontSize: 11 }} />
               <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} unit="%" />
@@ -271,15 +406,12 @@ export const StudentDetailPage: React.FC = () => {
                 contentStyle={{ backgroundColor: '#0f172a', color: '#fff', borderRadius: '12px' }}
                 formatter={(val: any) => [`${val}%`, 'Candidate Average']}
               />
-              <Line
-                type="monotone"
+              <Bar
                 dataKey="average"
-                stroke="#2563eb"
-                strokeWidth={3}
-                dot={{ r: 6, fill: '#2563eb', stroke: '#ffffff', strokeWidth: 2 }}
-                activeDot={{ r: 8 }}
+                fill="#2563eb"
+                radius={[4, 4, 0, 0]}
               />
-            </LineChart>
+            </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
@@ -335,7 +467,7 @@ export const StudentDetailPage: React.FC = () => {
 
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={selectedSubjectData.scores}>
+                <BarChart data={selectedSubjectData.scores}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="mockName" tick={{ fontSize: 11 }} />
                   <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} unit="%" />
@@ -346,14 +478,12 @@ export const StudentDetailPage: React.FC = () => {
                       selectedSubjectData.subjectName,
                     ]}
                   />
-                  <Line
-                    type="monotone"
+                  <Bar
                     dataKey="percentage"
-                    stroke="#4f46e5"
-                    strokeWidth={3}
-                    dot={{ r: 5, fill: '#4f46e5', stroke: '#fff', strokeWidth: 2 }}
+                    fill="#4f46e5"
+                    radius={[4, 4, 0, 0]}
                   />
-                </LineChart>
+                </BarChart>
               </ResponsiveContainer>
             </div>
           </div>

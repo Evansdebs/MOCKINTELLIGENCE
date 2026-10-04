@@ -19,6 +19,7 @@ import {
   Activity,
   ChevronDown,
   ChevronUp,
+  Trash2,
   BookOpen,
   Layers,
   AlertCircle,
@@ -261,6 +262,17 @@ export const ExaminationsPage: React.FC = () => {
       loadData();
     } catch (err: any) {
       alert(err.message || 'Failed to unlock examination.');
+    } finally { setActionLoading(false); }
+  };
+
+  const handleDeleteExam = async (exam: Examination) => {
+    if (!window.confirm(`Are you sure you want to permanently delete "${exam.name}"? This action cannot be undone and will delete all associated scores.`)) return;
+    try {
+      setActionLoading(true);
+      await api.deleteExamination(exam.id);
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete examination.');
     } finally { setActionLoading(false); }
   };
 
@@ -758,7 +770,7 @@ export const ExaminationsPage: React.FC = () => {
                       <p className="text-[11px] text-slate-400 mb-3">Percentage of students meeting or exceeding pass threshold</p>
                       <div className="h-48">
                         <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={buildChartData()}>
+                          <BarChart data={buildChartData()}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                             <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                             <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} unit="%" />
@@ -767,11 +779,8 @@ export const ExaminationsPage: React.FC = () => {
                               formatter={(val: any) => [`${val}%`, 'Pass Rate']}
                               labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label}
                             />
-                            <Line dataKey="passRate" name="Pass Rate" stroke="#059669" strokeWidth={3}
-                              dot={{ r: 6, fill: '#059669', stroke: '#fff', strokeWidth: 2 }}
-                              activeDot={{ r: 8 }}
-                            />
-                          </LineChart>
+                            <Bar dataKey="passRate" name="Pass Rate" fill="#059669" radius={[4, 4, 0, 0]} />
+                          </BarChart>
                         </ResponsiveContainer>
                       </div>
                     </div>
@@ -1021,6 +1030,13 @@ export const ExaminationsPage: React.FC = () => {
                             <CheckCircle2 className="w-3.5 h-3.5" /> Mark Complete
                           </button>
                         )}
+                        <button
+                          onClick={() => handleDeleteExam(exam)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors ml-1"
+                          title="Delete Examination"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     )}
                   </div>

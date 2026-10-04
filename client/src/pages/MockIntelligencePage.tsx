@@ -372,7 +372,7 @@ export const MockIntelligencePage: React.FC = () => {
 
               <div id="pass-rate-chart" className="h-72 w-full p-2 bg-white dark:bg-slate-900 rounded-lg">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={overviewKPIs?.examTrends || []}>
+                  <BarChart data={overviewKPIs?.examTrends || []}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                     <XAxis dataKey="examName" tick={{ fontSize: 11 }} />
                     <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} unit="%" />
@@ -380,14 +380,12 @@ export const MockIntelligencePage: React.FC = () => {
                       contentStyle={{ backgroundColor: '#0f172a', color: '#fff', borderRadius: '12px' }}
                       formatter={(val: any) => [`${val}%`, 'Pass Rate']}
                     />
-                    <Line
-                      type="monotone"
+                    <Bar
                       dataKey="passRate"
-                      stroke="#059669"
-                      strokeWidth={3}
-                      dot={{ r: 6, fill: '#059669', stroke: '#fff', strokeWidth: 2 }}
+                      fill="#059669"
+                      radius={[4, 4, 0, 0]}
                     />
-                  </LineChart>
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
@@ -505,7 +503,7 @@ export const MockIntelligencePage: React.FC = () => {
             {/* Multi-series chart */}
             <div id="subject-multi-series-chart" className="h-80 w-full p-4 bg-white dark:bg-slate-900 rounded-xl">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={subjectData?.trends || []}>
+                <BarChart data={subjectData?.trends || []}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="mockName" tick={{ fontSize: 11 }} />
                   <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} unit="%" />
@@ -517,18 +515,15 @@ export const MockIntelligencePage: React.FC = () => {
                   {subjectData?.subjects?.map((sub: any, idx: number) => {
                     if (!visibleSubjects[sub.name]) return null;
                     return (
-                      <Line
+                      <Bar
                         key={sub.name}
-                        type="monotone"
                         dataKey={sub.name}
-                        stroke={subjectColors[idx % subjectColors.length]}
-                        strokeWidth={2.5}
-                        dot={{ r: 5 }}
-                        activeDot={{ r: 7 }}
+                        fill={subjectColors[idx % subjectColors.length]}
+                        radius={[4, 4, 0, 0]}
                       />
                     );
                   })}
-                </LineChart>
+                </BarChart>
               </ResponsiveContainer>
             </div>
           </div>

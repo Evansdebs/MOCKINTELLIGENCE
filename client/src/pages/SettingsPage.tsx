@@ -20,6 +20,8 @@ export const SettingsPage: React.FC = () => {
   const [motto, setMotto] = useState('');
   const [headteacherName, setHeadteacherName] = useState('');
   const [enableRanking, setEnableRanking] = useState(true);
+  const [beceStartDate, setBeceStartDate] = useState('');
+  const [beceTimetable, setBeceTimetable] = useState('');
 
   // Analytics Engine Thresholds
   const [passThreshold, setPassThreshold] = useState(50.0);
@@ -58,6 +60,11 @@ export const SettingsPage: React.FC = () => {
         setConsecutiveDeclineAlertCount(s.consecutiveDeclineAlertCount || 3);
         setStudentsCanDownloadSlips(s.studentsCanDownloadSlips ?? true);
         setTeachersCanEditScores(s.teachersCanEditScores ?? true);
+        
+        if (s.beceStartDate) {
+          setBeceStartDate(new Date(s.beceStartDate).toISOString().split('T')[0]);
+        }
+        setBeceTimetable(s.beceTimetable || '');
       }
       if (res.gradeScales) {
         setGradeScales(res.gradeScales);
@@ -89,6 +96,8 @@ export const SettingsPage: React.FC = () => {
         consecutiveDeclineAlertCount,
         studentsCanDownloadSlips,
         teachersCanEditScores,
+        beceStartDate,
+        beceTimetable,
       });
       setSuccessMessage('School settings saved successfully.');
       setTimeout(() => setSuccessMessage(null), 3500);
@@ -296,6 +305,49 @@ export const SettingsPage: React.FC = () => {
                 onChange={(e) => setCurrentClass(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                BECE Start Date
+              </label>
+              <input
+                type="date"
+                value={beceStartDate}
+                onChange={(e) => setBeceStartDate(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                BECE Timetable (PDF Document)
+              </label>
+              <div className="flex items-center gap-4">
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setBeceTimetable(reader.result as string);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all cursor-pointer"
+                />
+                {beceTimetable && (
+                  <button type="button" onClick={() => setBeceTimetable('')} className="text-xs text-rose-500 font-semibold">
+                    Remove Timetable
+                  </button>
+                )}
+              </div>
+              <p className="text-[10px] text-slate-500 mt-1">
+                Upload the official timetable as a PDF document for students to download.
+              </p>
             </div>
           </div>
 

@@ -15,6 +15,8 @@ import {
   Printer,
   Activity,
   BookOpen,
+  Calendar,
+  Clock,
 } from 'lucide-react';
 import {
   LineChart,
@@ -44,6 +46,7 @@ export const DashboardPage: React.FC = () => {
   const [gradeDistribution, setGradeDistribution] = useState<any>(null);
   const [weakAreas, setWeakAreas] = useState<any>(null);
   const [teacherData, setTeacherData] = useState<any>(null);
+  const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -54,21 +57,26 @@ export const DashboardPage: React.FC = () => {
     try {
       setLoading(true);
       if (user?.role === 'TEACHER') {
-        const [teacherRes, studentsRes] = await Promise.all([
+        const [teacherRes, studentsRes, settingsRes] = await Promise.all([
           api.getTeacherDashboard(),
           api.getStudents(),
+          api.getSettings(),
         ]);
         setTeacherData(teacherRes);
         if (studentsRes?.classes) {
           setClassesList(studentsRes.classes);
         }
+        if (settingsRes?.settings) {
+          setSettings(settingsRes.settings);
+        }
       } else {
-        const [kpis, subs, grades, weak, studentsRes] = await Promise.all([
+        const [kpis, subs, grades, weak, studentsRes, settingsRes] = await Promise.all([
           api.getOverview({ class: classFilter }),
           api.getSubjectTrends({ class: classFilter }),
           api.getGradeDistribution({ class: classFilter }),
           api.getWeakAreasAndAlerts({ class: classFilter }),
           api.getStudents(),
+          api.getSettings(),
         ]);
 
         setKpiData(kpis);
@@ -77,6 +85,9 @@ export const DashboardPage: React.FC = () => {
         setWeakAreas(weak);
         if (studentsRes?.classes) {
           setClassesList(studentsRes.classes);
+        }
+        if (settingsRes?.settings) {
+          setSettings(settingsRes.settings);
         }
       }
     } catch (err) {
@@ -105,6 +116,47 @@ export const DashboardPage: React.FC = () => {
     '#16a34a', // Green
     '#9333ea', // Violet
   ];
+
+  const renderBeceCountdown = () => {
+    if (!settings?.beceStartDate) return null;
+    
+    const beceDate = new Date(settings.beceStartDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const timeDiff = beceDate.getTime() - today.getTime();
+    const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+    if (daysLeft < 0) return null;
+
+    return (
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-5 mb-6 text-white shadow-lg flex flex-col md:flex-row items-center justify-between gap-4 mt-6">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm shrink-0">
+            <Clock className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold tracking-tight">
+              {daysLeft === 0 ? "BECE Starts Today!" : `${daysLeft} Days until BECE`}
+            </h3>
+            <p className="text-blue-100 text-xs mt-0.5">
+              Scheduled for {beceDate.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </p>
+          </div>
+        </div>
+        
+        {settings.beceTimetable && (
+          <a
+            href={settings.beceTimetable}
+            download="BECE_Timetable.pdf"
+            className="px-4 py-2 bg-white/20 hover:bg-white/30 transition-colors backdrop-blur-sm rounded-xl text-xs font-bold flex items-center gap-2 shrink-0"
+          >
+            <Calendar className="w-4 h-4" />
+            <span>Download Timetable</span>
+          </a>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -197,6 +249,8 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {renderBeceCountdown()}
 
       {user?.role === 'TEACHER' ? (
         <div className="space-y-6">
@@ -462,7 +516,7 @@ export const DashboardPage: React.FC = () => {
 
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={subjectTrends?.trends || []}>
+            <BarChart data={subjectTrends?.trends || []}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="mockName" tick={{ fontSize: 11 }} />
               <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} unit="%" />
@@ -472,16 +526,14 @@ export const DashboardPage: React.FC = () => {
               />
               <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
               {subjectTrends?.subjects?.slice(0, 6).map((sub: any, idx: number) => (
-                <Line
+                <Bar
                   key={sub.name}
-                  type="monotone"
                   dataKey={sub.name}
-                  stroke={subjectColors[idx % subjectColors.length]}
-                  strokeWidth={2.5}
-                  dot={{ r: 4 }}
+                  fill={subjectColors[idx % subjectColors.length]}
+                  radius={[4, 4, 0, 0]}
                 />
               ))}
-            </LineChart>
+            </BarChart>
           </ResponsiveContainer>
         </div>
       </div>

@@ -51,6 +51,8 @@ model SchoolSettings {
   consecutiveBelowTargetAlertCount Int     @default(3)
   studentsCanDownloadSlips        Boolean  @default(true)
   teachersCanEditScores           Boolean  @default(true)
+  beceStartDate                   DateTime?
+  beceTimetable                   String?
   updatedAt                       DateTime @updatedAt
 }
 

@@ -56,10 +56,22 @@ export async function getScoreSheet(req: AuthRequest, res: Response): Promise<vo
       include: { subject: true },
     });
 
-    // Subject definitions
-    const subjects = exam.examinationSubjects
-      .map(es => es.subject)
+    // Subject definitions: Fetch all active subjects to ensure newly added subjects appear
+    const allActiveSubjects = await prisma.subject.findMany({
+      where: { status: 'Active' },
+      orderBy: { order: 'asc' }
+    });
+    
+    let subjects = allActiveSubjects
       .filter(s => (subjectId && subjectId !== 'all' ? s.id === subjectId : true));
+
+    if (req.user?.role === 'TEACHER') {
+      const assignedSubjects = await prisma.teacherSubject.findMany({
+        where: { userId: req.user.userId }
+      });
+      const assignedIds = new Set(assignedSubjects.map(ts => ts.subjectId));
+      subjects = subjects.filter(s => assignedIds.has(s.id));
+    }
 
     // Construct matrix
     const scoreMap: Record<string, any> = {};
