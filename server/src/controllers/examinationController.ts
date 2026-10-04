@@ -33,7 +33,7 @@ export async function getExaminations(req: AuthRequest, res: Response): Promise<
 
 export async function getExaminationById(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const examination = await prisma.examination.findUnique({
       where: { id },
       include: {
@@ -131,7 +131,7 @@ export async function createExamination(req: AuthRequest, res: Response): Promis
 
 export async function updateExamination(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { name, academicYear, description, sequenceOrder, startDate, endDate, status, subjectIds } = req.body;
 
     const existing = await prisma.examination.findUnique({ where: { id } });
@@ -192,7 +192,7 @@ export async function updateExamination(req: AuthRequest, res: Response): Promis
 
 export async function lockExamination(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const exam = await prisma.examination.findUnique({ where: { id } });
 
     if (!exam) {
@@ -230,7 +230,7 @@ export async function lockExamination(req: AuthRequest, res: Response): Promise<
 
 export async function unlockExamination(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { reason } = req.body;
 
     const exam = await prisma.examination.findUnique({ where: { id } });
@@ -269,7 +269,7 @@ export async function unlockExamination(req: AuthRequest, res: Response): Promis
 
 export async function completeExamination(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const exam = await prisma.examination.findUnique({ where: { id } });
 
     if (!exam) {
@@ -310,7 +310,7 @@ export async function completeExamination(req: AuthRequest, res: Response): Prom
 
 export async function getExamSnapshot(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const exam = await prisma.examination.findUnique({
       where: { id },

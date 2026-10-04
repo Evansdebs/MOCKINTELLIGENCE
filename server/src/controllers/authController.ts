@@ -77,22 +77,22 @@ export async function login(req: Request, res: Response): Promise<void> {
 
 export async function studentLogin(req: Request, res: Response): Promise<void> {
   try {
-    const { indexNumber, pin } = req.body;
-    if (!indexNumber || !pin) {
-      res.status(400).json({ error: 'Index Number and PIN are required.' });
+    const { indexNumber, studentId } = req.body;
+    if (!indexNumber || !studentId) {
+      res.status(400).json({ error: 'Index Number and Student ID are required.' });
       return;
     }
 
     const student = await prisma.student.findFirst({
       where: {
         indexNumber: indexNumber.trim(),
-        pin: pin.trim(),
+        studentId: studentId.trim(),
         status: 'Active'
       },
     });
 
     if (!student) {
-      res.status(401).json({ error: 'Invalid Index Number or PIN.' });
+      res.status(401).json({ error: 'Invalid Index Number or Student ID.' });
       return;
     }
 

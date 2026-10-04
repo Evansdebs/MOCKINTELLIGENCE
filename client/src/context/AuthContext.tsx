@@ -7,7 +7,7 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   login: (credentials: { username: string; password: string }) => Promise<void>;
-  studentLogin: (credentials: { indexNumber: string; pin: string }) => Promise<void>;
+  studentLogin: (credentials: { indexNumber: string; studentId: string }) => Promise<void>;
   logout: () => void;
   isAdmin: boolean;
   isTeacher: boolean;
@@ -51,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('mock_intel_user', JSON.stringify(res.user));
   };
 
-  const studentLogin = async (credentials: { indexNumber: string; pin: string }) => {
+  const studentLogin = async (credentials: { indexNumber: string; studentId: string }) => {
     const res = await api.studentLogin(credentials);
     setToken(res.token);
     setUser(res.user);

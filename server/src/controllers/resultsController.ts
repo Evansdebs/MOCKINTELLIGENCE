@@ -7,7 +7,8 @@ import { AuthRequest } from '../middleware/auth';
  */
 export async function getStudentResult(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { studentId, examinationId } = req.params;
+    const studentId = req.params.studentId as string;
+    const examinationId = req.params.examinationId as string;
 
     if (req.user?.role === 'STUDENT' && req.user.userId !== studentId) {
       res.status(403).json({ error: 'You can only view your own result.' });
@@ -130,7 +131,7 @@ export async function getStudentResult(req: AuthRequest, res: Response): Promise
  */
 export async function getClassResults(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { examinationId } = req.params;
+    const examinationId = req.params.examinationId as string;
     const { classId: classFilter } = req.query;
 
     const settings = await prisma.schoolSettings.findFirst() || {

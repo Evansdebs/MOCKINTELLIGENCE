@@ -11,7 +11,7 @@ export const LoginPage: React.FC = () => {
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('Admin@123');
   const [indexNumber, setIndexNumber] = useState('');
-  const [pin, setPin] = useState('');
+  const [studentId, setStudentId] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -26,7 +26,7 @@ export const LoginPage: React.FC = () => {
         await login({ username, password });
         navigate('/dashboard');
       } else {
-        await studentLogin({ indexNumber, pin });
+        await studentLogin({ indexNumber, studentId });
         navigate('/portal');
       }
     } catch (err: any) {
@@ -157,16 +157,16 @@ export const LoginPage: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                    PIN
+                    Student ID
                   </label>
                   <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                    <UserIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
-                      value={pin}
-                      onChange={(e) => setPin(e.target.value)}
-                      placeholder="Enter 4-digit PIN"
+                      value={studentId}
+                      onChange={(e) => setStudentId(e.target.value)}
+                      placeholder="e.g. ACH/B9/001"
                       className="w-full pl-10 pr-10 py-2.5 bg-slate-900/80 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     />
                     <button

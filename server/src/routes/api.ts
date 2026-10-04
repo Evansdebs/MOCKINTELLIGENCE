@@ -12,6 +12,7 @@ import * as resultsController from '../controllers/resultsController';
 import * as analyticsController from '../controllers/analyticsController';
 import * as auditController from '../controllers/auditController';
 import * as userController from '../controllers/userController';
+import * as omrController from '../controllers/omrController';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -69,6 +70,10 @@ router.get('/scores/template', authenticate, scoreController.downloadScoreTempla
 router.post('/scores/import/preview', authenticate, authorize(['ADMIN', 'TEACHER']), upload.single('file'), scoreController.previewScoreImport);
 router.post('/scores/import/commit', authenticate, authorize(['ADMIN', 'TEACHER']), scoreController.commitScoreImport);
 
+// ==================== OMR PROCESSING ====================
+router.post('/omr/scan', authenticate, authorize(['ADMIN', 'TEACHER']), upload.single('file'), omrController.scanOmrSheet);
+router.post('/omr/save', authenticate, authorize(['ADMIN', 'TEACHER']), omrController.saveOmrScores);
+
 // ==================== RESULTS ====================
 router.get('/results/student/:studentId/:examinationId', authenticate, resultsController.getStudentResult);
 router.get('/results/class/:examinationId', authenticate, resultsController.getClassResults);
@@ -92,6 +97,7 @@ router.get('/audit-logs', authenticate, authorize(['ADMIN']), auditController.ge
 router.get('/users', authenticate, authorize(['ADMIN']), userController.getUsers);
 router.post('/users', authenticate, authorize(['ADMIN']), userController.createUser);
 router.put('/users/:id', authenticate, authorize(['ADMIN']), userController.updateUser);
+router.put('/users/:id/password', authenticate, authorize(['ADMIN']), userController.resetUserPassword);
 router.put('/users/:id/subjects', authenticate, authorize(['ADMIN']), userController.updateUserSubjects);
 
 export default router;

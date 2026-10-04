@@ -29,7 +29,7 @@ export const createClassRoom = async (req: Request, res: Response) => {
 
 export const updateClassRoom = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { name, status, teacherId } = req.body;
     
     const classRoom = await prisma.classRoom.update({
@@ -44,7 +44,7 @@ export const updateClassRoom = async (req: Request, res: Response) => {
 
 export const deleteClassRoom = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     await prisma.classRoom.delete({ where: { id } });
     res.json({ message: 'Classroom deleted successfully' });
   } catch (error: any) {

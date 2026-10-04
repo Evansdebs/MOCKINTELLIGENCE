@@ -18,6 +18,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { Student } from '../types';
+import * as XLSX from 'xlsx';
 
 export const StudentsPage: React.FC = () => {
   const { isAdmin } = useAuth();
@@ -192,8 +193,52 @@ export const StudentsPage: React.FC = () => {
     }
   };
 
-  const handleExportExcel = () => {
-    window.open('/api/students/export/excel', '_blank');
+  const handleDownloadTemplate = () => {
+    const templateData = [
+      {
+        'Student ID': 'ACH/B9/001',
+        'Index Number': '010203001',
+        'First Name': 'Kwame',
+        'Middle Name': '',
+        'Last Name': 'Mensah',
+        'Gender': 'Male',
+        'Class': 'Basic 9A',
+        'House': 'Aggrey House'
+      }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Template');
+    XLSX.writeFile(wb, 'Student_Import_Template.xlsx');
+  };
+
+  const handleExportExcel = async () => {
+    try {
+      const token = localStorage.getItem('mock_intel_token');
+      const response = await fetch('/api/students/export/excel', {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : ''
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Basic_9_Students.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to export students. Please try again.');
+    }
   };
 
   return (
@@ -574,7 +619,17 @@ export const StudentsPage: React.FC = () => {
             </div>
 
             {/* File Upload Area */}
-            <div className="mt-4 p-4 border-2 border-dashed border-slate-200 rounded-2xl text-center bg-slate-50">
+            <div className="mt-4 p-4 border-2 border-dashed border-slate-200 rounded-2xl text-center bg-slate-50 relative">
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-xs font-semibold text-slate-700">Select Excel File</span>
+                <button
+                  onClick={handleDownloadTemplate}
+                  className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-all"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download Template
+                </button>
+              </div>
               <input
                 type="file"
                 accept=".xlsx, .xls"

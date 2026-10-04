@@ -53,7 +53,7 @@ export async function getStudents(req: AuthRequest, res: Response): Promise<void
 
 export async function getStudentById(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const student = await prisma.student.findUnique({
       where: { id },
       include: {
@@ -153,7 +153,7 @@ export async function createStudent(req: AuthRequest, res: Response): Promise<vo
 
 export async function updateStudent(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const {
       studentId,
       indexNumber,
@@ -215,7 +215,7 @@ export async function updateStudent(req: AuthRequest, res: Response): Promise<vo
 
 export async function deleteStudent(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const student = await prisma.student.findUnique({
       where: { id },
       include: { _count: { select: { scores: true } } },
@@ -382,8 +382,25 @@ export async function commitStudentImport(req: AuthRequest, res: Response): Prom
     }
 
     let importedCount = 0;
+    
+    const existingClasses = await prisma.classRoom.findMany();
+    const classMap = new Map(existingClasses.map(c => [c.name.toLowerCase(), c.id]));
+
     for (const st of students) {
       try {
+        const className = String(st.class || 'Basic 9').trim();
+        const classNameKey = className.toLowerCase();
+        
+        let classId = classMap.get(classNameKey);
+        
+        if (!classId) {
+          const newClass = await prisma.classRoom.create({
+            data: { name: className }
+          });
+          classId = newClass.id;
+          classMap.set(classNameKey, classId);
+        }
+
         await prisma.student.create({
           data: {
             studentId: String(st.studentId).trim(),
@@ -393,7 +410,7 @@ export async function commitStudentImport(req: AuthRequest, res: Response): Prom
             lastName: String(st.lastName).trim(),
             fullName: st.fullName || [st.firstName, st.middleName, st.lastName].filter(Boolean).join(' '),
             gender: st.gender || 'Male',
-            class: st.class || 'Basic 9',
+            classId: classId,
             house: st.house || null,
             status: 'Active',
             pin: Math.floor(1000 + Math.random() * 9000).toString(),
@@ -401,6 +418,7 @@ export async function commitStudentImport(req: AuthRequest, res: Response): Prom
         });
         importedCount++;
       } catch (e) {
+        console.error("Error importing student:", e);
         // Skip duplicate if concurrently created
       }
     }

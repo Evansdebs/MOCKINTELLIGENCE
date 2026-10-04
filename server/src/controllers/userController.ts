@@ -88,7 +88,7 @@ export async function createUser(req: AuthRequest, res: Response): Promise<void>
 
 export async function updateUser(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { name, email, role, status, password } = req.body;
 
     const existing = await prisma.user.findUnique({ where: { id } });
@@ -132,7 +132,7 @@ export async function updateUser(req: AuthRequest, res: Response): Promise<void>
 
 export async function updateUserSubjects(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { subjectIds } = req.body;
 
     const existing = await prisma.user.findUnique({ where: { id } });
@@ -168,5 +168,44 @@ export async function updateUserSubjects(req: AuthRequest, res: Response): Promi
     res.json({ message: 'Teacher subjects updated successfully.' });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to update teacher subjects.' });
+  }
+}
+
+export async function resetUserPassword(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const id = req.params.id as string;
+    const { newPassword } = req.body;
+    
+    if (!newPassword || newPassword.length < 6) {
+      res.status(400).json({ error: 'Password must be at least 6 characters long.' });
+      return;
+    }
+
+    const existing = await prisma.user.findUnique({ where: { id } });
+    if (!existing) {
+      res.status(404).json({ error: 'User not found.' });
+      return;
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: { id },
+      data: { passwordHash },
+    });
+
+    await logAudit({
+      userId: req.user?.userId,
+      userName: req.user?.name || 'Admin',
+      action: 'RESET_USER_PASSWORD',
+      recordType: 'User',
+      recordId: id,
+      newValue: `Reset password for user ${existing.name}`,
+      ipAddress: req.ip,
+    });
+
+    res.json({ message: 'Password reset successfully.' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to reset password.' });
   }
 }

@@ -17,6 +17,8 @@ import { SettingsPage } from './pages/SettingsPage';
 import { UsersPage } from './pages/UsersPage';
 import { ClassesPage } from './pages/ClassesPage';
 import { StudentPortalPage } from './pages/StudentPortalPage';
+import { OMRScannerPage } from './pages/OMRScannerPage';
+import { OMRTemplatePage } from './pages/OMRTemplatePage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean }> = ({
   children,
@@ -75,6 +77,8 @@ export const App: React.FC = () => {
             <Route path="/subjects" element={<SubjectsPage />} />
             <Route path="/classes" element={<ClassesPage />} />
             <Route path="/scores" element={<ScoreEntryPage />} />
+            <Route path="/scores/omr" element={<OMRScannerPage />} />
+            <Route path="/scores/omr/templates" element={<OMRTemplatePage />} />
             <Route path="/results" element={<ResultsPage />} />
             <Route path="/analytics" element={<MockIntelligencePage />} />
             <Route path="/reports" element={<ReportsPage />} />

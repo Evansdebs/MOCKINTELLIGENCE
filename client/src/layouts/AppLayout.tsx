@@ -22,6 +22,7 @@ import {
   School,
   Moon,
   Sun,
+  Scan,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -61,6 +62,7 @@ export const AppLayout: React.FC = () => {
     { label: 'Subjects', path: '/subjects', icon: BookOpen },
     { label: 'Classes', path: '/classes', icon: School },
     { label: 'Score Entry', path: '/scores', icon: Edit3 },
+    { label: 'Scan OMR', path: '/scores/omr', icon: Scan, badge: 'Beta' },
     { label: 'Results & Slips', path: '/results', icon: FileText },
     { label: 'Mock Intelligence', path: '/analytics', icon: TrendingUp, badge: 'Core' },
     { label: 'Reports', path: '/reports', icon: Printer },

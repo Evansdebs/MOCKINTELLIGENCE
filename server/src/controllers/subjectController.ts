@@ -67,7 +67,7 @@ export async function createSubject(req: AuthRequest, res: Response): Promise<vo
 
 export async function updateSubject(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { name, code, maxScore, status, order, classId } = req.body;
 
     const existing = await prisma.subject.findUnique({ where: { id } });
@@ -108,7 +108,7 @@ export async function updateSubject(req: AuthRequest, res: Response): Promise<vo
 
 export async function deleteSubject(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const subject = await prisma.subject.findUnique({
       where: { id },
       include: { _count: { select: { scores: true } } },

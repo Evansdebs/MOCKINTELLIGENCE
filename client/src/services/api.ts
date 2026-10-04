@@ -97,6 +97,10 @@ export const api = {
   batchSaveScores: (data: { examinationId: string; scores: any[] }) => request<any>('/scores/batch', { method: 'POST', body: JSON.stringify(data) }),
   previewScoreImport: (formData: FormData) => request<any>('/scores/import/preview', { method: 'POST', body: formData }),
   commitScoreImport: (data: { examinationId: string; subjectId: string; records: any[] }) => request<any>('/scores/import/commit', { method: 'POST', body: JSON.stringify(data) }),
+  
+  // OMR
+  scanOmrSheet: (formData: FormData) => request<any>('/omr/scan', { method: 'POST', body: formData }),
+  saveOmrScores: (data: { studentId: string; examinationId: string; subjectId: string; rawScore: number }) => request<any>('/omr/save', { method: 'POST', body: JSON.stringify(data) }),
 
   // Results
   getStudentResult: (studentId: string, examinationId: string) => request<any>(`/results/student/${studentId}/${examinationId}`),
@@ -153,4 +157,5 @@ export const api = {
   createUser: (data: any) => request<any>('/users', { method: 'POST', body: JSON.stringify(data) }),
   updateUser: (id: string, data: any) => request<any>(`/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   updateUserSubjects: (id: string, subjectIds: string[]) => request<any>(`/users/${id}/subjects`, { method: 'PUT', body: JSON.stringify({ subjectIds }) }),
+  resetUserPassword: (id: string, newPassword: string) => request<any>(`/users/${id}/password`, { method: 'PUT', body: JSON.stringify({ newPassword }) }),
 };

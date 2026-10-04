@@ -73,7 +73,7 @@ export async function getHeatmap(req: AuthRequest, res: Response): Promise<void>
 
 export async function getStudentAnalytics(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { studentId } = req.params;
+    const studentId = req.params.studentId as string;
     
     if (req.user?.role === 'STUDENT' && req.user.userId !== studentId) {
       res.status(403).json({ error: 'You can only view your own analytics.' });
