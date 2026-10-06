@@ -37,6 +37,7 @@ app.get('/health', (req: Request, res: Response) => {
 
 // Mount API routes
 app.use('/api', apiRouter);
+app.use('/', apiRouter);
 
 // Global Error Handler
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
@@ -50,4 +51,4 @@ app.listen(PORT, () => {
   console.log(`[Mock Performance Intelligence Server] Running on http://localhost:${PORT}`);
 });
 
-export default app;
+module.exports = app;

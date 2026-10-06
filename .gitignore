@@ -4,3 +4,6 @@ build/
 .env
 dev.db
 .DS_Store
+
+.vercel
+.env*

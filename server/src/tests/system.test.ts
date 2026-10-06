@@ -74,7 +74,7 @@ async function runTestSuite() {
   assert(subTrends.trends.length >= 5, `Generated subject multi-series timeline for ${subTrends.trends.length} mocks`);
 
   const mockComp = await AnalyticsService.getMockToMockComparison();
-  assert(mockComp.length >= 5, `Mock-to-mock comparison rows generated (${mockComp.length} rows)`);
+  assert(mockComp.tableData.length >= 5, `Mock-to-mock comparison rows generated (${mockComp.tableData.length} rows)`);
 
   const weakAreas = await AnalyticsService.getWeakAreasAndAlerts();
   assert(Array.isArray(weakAreas.alerts), 'Performance alerts successfully evaluated from examination data');

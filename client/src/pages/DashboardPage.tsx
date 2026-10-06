@@ -34,6 +34,7 @@ import {
 } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
+import { BECECountdown } from '../components/dashboard/BECECountdown';
 
 export const DashboardPage: React.FC = () => {
   const { user, isAdmin } = useAuth();
@@ -116,47 +117,6 @@ export const DashboardPage: React.FC = () => {
     '#16a34a', // Green
     '#9333ea', // Violet
   ];
-
-  const renderBeceCountdown = () => {
-    if (!settings?.beceStartDate) return null;
-    
-    const beceDate = new Date(settings.beceStartDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const timeDiff = beceDate.getTime() - today.getTime();
-    const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24));
-
-    if (daysLeft < 0) return null;
-
-    return (
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-5 mb-6 text-white shadow-lg flex flex-col md:flex-row items-center justify-between gap-4 mt-6">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm shrink-0">
-            <Clock className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h3 className="text-xl font-bold tracking-tight">
-              {daysLeft === 0 ? "BECE Starts Today!" : `${daysLeft} Days until BECE`}
-            </h3>
-            <p className="text-blue-100 text-xs mt-0.5">
-              Scheduled for {beceDate.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-            </p>
-          </div>
-        </div>
-        
-        {settings.beceTimetable && (
-          <a
-            href={settings.beceTimetable}
-            download="BECE_Timetable.pdf"
-            className="px-4 py-2 bg-white/20 hover:bg-white/30 transition-colors backdrop-blur-sm rounded-xl text-xs font-bold flex items-center gap-2 shrink-0"
-          >
-            <Calendar className="w-4 h-4" />
-            <span>Download Timetable</span>
-          </a>
-        )}
-      </div>
-    );
-  };
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -250,7 +210,9 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {renderBeceCountdown()}
+      <div className="mt-2">
+        <BECECountdown settings={settings} />
+      </div>
 
       {user?.role === 'TEACHER' ? (
         <div className="space-y-6">

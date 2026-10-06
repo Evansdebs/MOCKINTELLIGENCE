@@ -1,3 +1,4 @@
+import { Response } from 'express';
 import { prisma } from '../prisma';
 import { calculateAggregate, calculateGradeForScore } from '../utils/grading';
 import { AuthRequest } from '../middleware/auth';
