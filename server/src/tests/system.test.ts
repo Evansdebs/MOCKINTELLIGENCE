@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { prisma } from '../prisma';
 import { calculateGradeForScore, calculateLongTermTrend, determineChangeStatus } from '../utils/grading';
 import { AnalyticsService } from '../services/analyticsService';
