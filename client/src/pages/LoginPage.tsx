@@ -92,13 +92,13 @@ export const LoginPage: React.FC = () => {
 
       {/* Main Container with 3D Tilt */}
       <div
-        className="w-full max-w-md relative z-10 transition-transform duration-300 ease-out"
+        className="w-full max-w-md relative z-10 transition-transform duration-300 ease-out -mt-8 sm:-mt-12"
         style={{
           transform: `perspective(1000px) rotateY(${mousePos.x * 4}deg) rotateX(${mousePos.y * -4}deg)`,
         }}
       >
         {/* Top Status Pill */}
-        <div className="flex justify-center mb-3">
+        <div className="flex justify-center mb-2">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/90 border border-slate-200/80 text-[11px] font-semibold text-slate-700 shadow-sm backdrop-blur-md">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="tracking-wide">ONEREAL Mock Intelligence Engine</span>
