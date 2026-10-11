@@ -36,12 +36,6 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const setRoleDemo = (u: string, p: string) => {
-    setUsername(u);
-    setPassword(p);
-    setError(null);
-  };
-
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background glowing gradients */}
@@ -191,35 +185,6 @@ export const LoginPage: React.FC = () => {
             </button>
           </form>
 
-          {/* Quick Demo Role Logins */}
-          <div className="mt-6 pt-5 border-t border-slate-700/60">
-            <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider mb-2.5 text-center">
-              Quick Role Demo Access
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => setRoleDemo('admin', 'Admin@123')}
-                className="py-1.5 px-2 bg-slate-700/60 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg text-center transition-colors border border-slate-600/50"
-              >
-                Admin
-              </button>
-              <button
-                type="button"
-                onClick={() => setRoleDemo('teacher.evans', 'Teacher@123')}
-                className="py-1.5 px-2 bg-slate-700/60 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg text-center transition-colors border border-slate-600/50"
-              >
-                Teacher
-              </button>
-              <button
-                type="button"
-                onClick={() => setRoleDemo('headteacher', 'Head@123')}
-                className="py-1.5 px-2 bg-slate-700/60 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg text-center transition-colors border border-slate-600/50"
-              >
-                Management
-              </button>
-            </div>
-          </div>
         </div>
 
         <div className="text-center mt-6 text-xs text-slate-500">
