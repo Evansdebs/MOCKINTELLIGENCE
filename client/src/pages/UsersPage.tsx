@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserCheck, Plus, X, Shield, Mail, User, BookOpen, Key, Send, CheckCircle2, Copy } from 'lucide-react';
+import { UserCheck, Plus, X, Shield, Mail, User, BookOpen, Key, Send, CheckCircle2, Copy, Edit2 } from 'lucide-react';
 import { api } from '../services/api';
 
 export const UsersPage: React.FC = () => {
@@ -7,19 +7,27 @@ export const UsersPage: React.FC = () => {
   const [subjects, setSubjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSubjectModalOpen, setIsSubjectModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([]);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [resetPasswordVal, setResetPasswordVal] = useState('');
 
-  // Form
+  // Form (Add)
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'ADMIN' | 'TEACHER' | 'MANAGEMENT'>('TEACHER');
   const [error, setError] = useState<string | null>(null);
+
+  // Form (Edit)
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editRole, setEditRole] = useState<'ADMIN' | 'TEACHER' | 'MANAGEMENT'>('TEACHER');
+  const [editStatus, setEditStatus] = useState<'Active' | 'Inactive'>('Active');
+  const [editPassword, setEditPassword] = useState('');
 
   // Setup Link Dialog
   const [setupLinkModal, setSetupLinkModal] = useState<{ open: boolean; link: string; message: string; email: string }>({
@@ -108,6 +116,29 @@ export const UsersPage: React.FC = () => {
       }
     } catch (err: any) {
       setError(err.message || 'Failed to create user account.');
+    }
+  };
+
+  const handleEditUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser) return;
+    setError(null);
+    try {
+      await api.updateUser(selectedUser.id, {
+        name: editName,
+        email: editEmail,
+        role: editRole,
+        status: editStatus,
+        password: editPassword.trim() ? editPassword.trim() : undefined,
+      });
+
+      setIsEditModalOpen(false);
+      setSelectedUser(null);
+      setEditPassword('');
+      loadData();
+      alert('User details updated successfully!');
+    } catch (err: any) {
+      setError(err.message || 'Failed to update user details.');
     }
   };
 
@@ -209,6 +240,22 @@ export const UsersPage: React.FC = () => {
                     <button
                       onClick={() => {
                         setSelectedUser(u);
+                        setEditName(u.name);
+                        setEditEmail(u.email);
+                        setEditRole(u.role);
+                        setEditStatus(u.status || 'Active');
+                        setEditPassword('');
+                        setIsEditModalOpen(true);
+                        setError(null);
+                      }}
+                      className="p-1.5 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors inline-block"
+                      title="Edit User Details"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedUser(u);
                         setResetPasswordVal('');
                         setIsResetModalOpen(true);
                         setError(null);
@@ -226,7 +273,7 @@ export const UsersPage: React.FC = () => {
                           setIsSubjectModalOpen(true);
                           setError(null);
                         }}
-                        className="p-1.5 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors inline-block"
+                        className="p-1.5 text-emerald-600 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors inline-block"
                         title="Assign Subjects"
                       >
                         <BookOpen className="w-4 h-4" />
@@ -347,6 +394,128 @@ export const UsersPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Edit User Modal */}
+      {isEditModalOpen && selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Edit User Details</h3>
+                <p className="text-[11px] text-slate-500 font-mono">@{selectedUser.username}</p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsEditModalOpen(false);
+                  setSelectedUser(null);
+                }}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {error && (
+              <div className="mt-3 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleEditUser} className="mt-4 space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Email *</label>
+                <input
+                  type="email"
+                  required
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Role *</label>
+                  <select
+                    value={editRole}
+                    onChange={(e) => setEditRole(e.target.value as any)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  >
+                    <option value="TEACHER">TEACHER</option>
+                    <option value="ADMIN">ADMIN</option>
+                    <option value="MANAGEMENT">MANAGEMENT</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Status *</label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as any)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Change Password <span className="font-normal text-slate-400">(Optional - Min 6 chars)</span>
+                </label>
+                <input
+                  type="password"
+                  value={editPassword}
+                  onChange={(e) => setEditPassword(e.target.value)}
+                  placeholder="Leave empty to keep existing password"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+              </div>
+
+              {selectedUser.authUserId ? (
+                <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] text-emerald-800 leading-relaxed">
+                  ✓ This user is managed by Supabase Auth. Any email or password changes will be synchronized directly to Supabase Auth.
+                </div>
+              ) : (
+                <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-600 leading-relaxed">
+                  ℹ Legacy account. When you update the password, the local credential hash is updated.
+                </div>
+              )}
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditModalOpen(false);
+                    setSelectedUser(null);
+                  }}
+                  className="px-4 py-2 border border-slate-300 text-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-600/30"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Assign Subjects Modal */}
       {isSubjectModalOpen && selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">

@@ -258,21 +258,85 @@ export async function updateUser(req: AuthRequest, res: Response): Promise<void>
       return;
     }
 
+    const nextName = name ? name.trim() : existing.name;
+    const nextEmail = email ? email.trim().toLowerCase() : existing.email;
+    const nextRole = role || existing.role;
+    const nextStatus = status || existing.status;
+
+    // Check uniqueness if email changed
+    if (nextEmail !== existing.email) {
+      const emailCollision = await prisma.user.findUnique({ where: { email: nextEmail } });
+      if (emailCollision && emailCollision.id !== id) {
+        res.status(400).json({ error: 'Another user already has this email address.' });
+        return;
+      }
+    }
+
+    // If account is linked to Supabase Auth, sync changes to auth.users
+    if (existing.authUserId) {
+      const supabaseAdmin = getSupabaseAdmin();
+      const authUpdates: any = {};
+
+      if (nextEmail !== existing.email) {
+        authUpdates.email = nextEmail;
+        authUpdates.email_confirm = true;
+      }
+      if (password && password.trim()) {
+        if (password.trim().length < 6) {
+          res.status(400).json({ error: 'Password must be at least 6 characters long.' });
+          return;
+        }
+        authUpdates.password = password.trim();
+      }
+      if (nextName !== existing.name) {
+        authUpdates.user_metadata = { name: nextName };
+      }
+
+      if (Object.keys(authUpdates).length > 0) {
+        const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(
+          existing.authUserId,
+          authUpdates
+        );
+
+        if (authErr) {
+          res.status(400).json({
+            error: `Failed to update Supabase Auth user: ${authErr.message}`,
+          });
+          return;
+        }
+      }
+    }
+
     const data: any = {
-      name: name ? name.trim() : existing.name,
-      email: email ? email.trim().toLowerCase() : existing.email,
-      role: role || existing.role,
-      status: status || existing.status,
+      name: nextName,
+      email: nextEmail,
+      role: nextRole,
+      status: nextStatus,
     };
 
+    // If password provided and account still has legacy hash / not linked, update passwordHash
     if (password && password.trim()) {
-      data.passwordHash = await bcrypt.hash(password.trim(), 10);
+      if (password.trim().length < 6) {
+        res.status(400).json({ error: 'Password must be at least 6 characters long.' });
+        return;
+      }
+      if (!existing.authUserId) {
+        data.passwordHash = await bcrypt.hash(password.trim(), 10);
+      }
     }
 
     const updated = await prisma.user.update({
       where: { id },
       data,
-      select: { id: true, username: true, name: true, email: true, role: true, status: true },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        email: true,
+        role: true,
+        status: true,
+        authUserId: true,
+      },
     });
 
     await logAudit({
@@ -281,7 +345,7 @@ export async function updateUser(req: AuthRequest, res: Response): Promise<void>
       action: 'UPDATE_USER',
       recordType: 'User',
       recordId: id,
-      newValue: `Updated user ${updated.name}`,
+      newValue: `Updated user ${updated.name} (${updated.role}, ${updated.status})`,
       ipAddress: req.ip,
     });
 
@@ -337,7 +401,7 @@ export async function resetUserPassword(req: AuthRequest, res: Response): Promis
     const id = req.params.id as string;
     const { newPassword } = req.body;
     
-    if (!newPassword || newPassword.length < 6) {
+    if (!newPassword || newPassword.trim().length < 6) {
       res.status(400).json({ error: 'Password must be at least 6 characters long.' });
       return;
     }
@@ -348,12 +412,30 @@ export async function resetUserPassword(req: AuthRequest, res: Response): Promis
       return;
     }
 
-    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const trimmedPassword = newPassword.trim();
 
-    await prisma.user.update({
-      where: { id },
-      data: { passwordHash },
-    });
+    // If bound to Supabase Auth, update via Admin API
+    if (existing.authUserId) {
+      const supabaseAdmin = getSupabaseAdmin();
+      const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(
+        existing.authUserId,
+        { password: trimmedPassword }
+      );
+
+      if (authErr) {
+        res.status(400).json({
+          error: `Failed to reset password in Supabase Auth: ${authErr.message}`,
+        });
+        return;
+      }
+    } else {
+      // Legacy account: hash locally
+      const passwordHash = await bcrypt.hash(trimmedPassword, 10);
+      await prisma.user.update({
+        where: { id },
+        data: { passwordHash },
+      });
+    }
 
     await logAudit({
       userId: req.user?.userId,
