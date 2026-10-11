@@ -40,7 +40,7 @@ export async function request<T>(
     if (!window.location.pathname.includes('/login')) {
       window.location.href = '/login';
     }
-    throw new Error('Session expired. Please log in again.');
+    throw new Error('Oops!!! Check credentials, refresh and login again');
   }
 
   const data = await response.json().catch(() => null);
@@ -170,4 +170,12 @@ export const api = {
   updateUser: (id: string, data: any) => request<any>(`/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   updateUserSubjects: (id: string, subjectIds: string[]) => request<any>(`/users/${id}/subjects`, { method: 'PUT', body: JSON.stringify({ subjectIds }) }),
   resetUserPassword: (id: string, newPassword: string) => request<any>(`/users/${id}/password`, { method: 'PUT', body: JSON.stringify({ newPassword }) }),
+
+  // System Backup & Restore
+  exportLocalBackup: () => request<any>('/backup/export'),
+  createCloudBackup: (description?: string) => request<any>('/backup/cloud', { method: 'POST', body: JSON.stringify({ description }) }),
+  listCloudBackups: () => request<any>('/backup/cloud/list'),
+  downloadCloudBackup: (id: string) => request<any>(`/backup/cloud/${id}/download`),
+  deleteCloudBackup: (id: string) => request<any>(`/backup/cloud/${id}`, { method: 'DELETE' }),
+  restoreBackup: (snapshot: any) => request<any>('/backup/restore', { method: 'POST', body: JSON.stringify({ snapshot }) }),
 };

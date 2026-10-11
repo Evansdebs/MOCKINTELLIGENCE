@@ -14,6 +14,7 @@ import * as analyticsController from '../controllers/analyticsController';
 import * as auditController from '../controllers/auditController';
 import * as userController from '../controllers/userController';
 import * as omrController from '../controllers/omrController';
+import * as backupController from '../controllers/backupController';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -100,6 +101,12 @@ router.get('/users', authenticate, authorize(['ADMIN']), userController.getUsers
 router.post('/users', authenticate, authorize(['ADMIN']), userController.createUser);
 router.put('/users/:id', authenticate, authorize(['ADMIN']), userController.updateUser);
 router.put('/users/:id/password', authenticate, authorize(['ADMIN']), userController.resetUserPassword);
-router.put('/users/:id/subjects', authenticate, authorize(['ADMIN']), userController.updateUserSubjects);
+// ==================== SYSTEM BACKUP & RESTORE ====================
+router.get('/backup/export', authenticate, authorize(['ADMIN']), backupController.exportLocalBackup);
+router.post('/backup/cloud', authenticate, authorize(['ADMIN']), backupController.createCloudBackup);
+router.get('/backup/cloud/list', authenticate, authorize(['ADMIN']), backupController.listCloudBackups);
+router.get('/backup/cloud/:id/download', authenticate, authorize(['ADMIN']), backupController.downloadCloudBackup);
+router.delete('/backup/cloud/:id', authenticate, authorize(['ADMIN']), backupController.deleteCloudBackup);
+router.post('/backup/restore', authenticate, authorize(['ADMIN']), backupController.restoreBackup);
 
 export default router;

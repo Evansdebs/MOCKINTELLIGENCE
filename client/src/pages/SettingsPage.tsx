@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Settings, Save, School, Award, Sliders, CheckCircle2, Plus, Trash2, Eraser } from 'lucide-react';
+import { Settings, Save, School, Award, Sliders, CheckCircle2, Plus, Trash2, Eraser, Cloud } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
 import { api } from '../services/api';
 import { GradeScale } from '../types';
+import { BackupRestoreManager } from '../components/BackupRestoreManager';
 
 export const SettingsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'school' | 'grading' | 'analytics' | 'permissions'>('school');
+  const [activeTab, setActiveTab] = useState<'school' | 'grading' | 'analytics' | 'permissions' | 'backup'>('school');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -155,7 +156,7 @@ export const SettingsPage: React.FC = () => {
       )}
 
       {/* Tabs */}
-      <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl max-w-md text-xs font-bold">
+      <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl max-w-xl text-xs font-bold">
         <button
           onClick={() => setActiveTab('school')}
           className={`flex-1 py-1.5 rounded-lg transition-all ${
@@ -187,6 +188,15 @@ export const SettingsPage: React.FC = () => {
           }`}
         >
           Permissions
+        </button>
+        <button
+          onClick={() => setActiveTab('backup')}
+          className={`flex-1 py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+            activeTab === 'backup' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+          }`}
+        >
+          <Cloud className="w-3.5 h-3.5 text-blue-500" />
+          <span>Backup & Restore</span>
         </button>
       </div>
 
@@ -700,6 +710,9 @@ export const SettingsPage: React.FC = () => {
           </div>
         </form>
       )}
+
+      {/* TAB 5: BACKUP & RESTORE */}
+      {activeTab === 'backup' && <BackupRestoreManager />}
     </div>
   );
 };
