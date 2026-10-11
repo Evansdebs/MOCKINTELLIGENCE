@@ -126,3 +126,42 @@
 .dark .hover\:bg-slate-50:hover { background-color: #475569 !important; }
 .dark .glass-panel { background: rgba(30, 41, 59, 0.85); border-color: rgba(51, 65, 85, 0.8); }
 
+/* System Dynamic Color Palette Themes */
+:root {
+  --theme-primary: #2563eb;
+  --theme-primary-hover: #1d4ed8;
+  --theme-primary-light: #eff6ff;
+  --theme-primary-ring: rgba(37, 99, 235, 0.35);
+}
+
+/* Global Dynamic Primary Overrides */
+[data-theme] .bg-blue-600 {
+  background-color: var(--theme-primary) !important;
+}
+[data-theme] .hover\:bg-blue-500:hover {
+  background-color: var(--theme-primary-hover) !important;
+}
+[data-theme] .hover\:bg-blue-700:hover {
+  background-color: var(--theme-primary-hover) !important;
+}
+[data-theme] .text-blue-600 {
+  color: var(--theme-primary) !important;
+}
+[data-theme] .text-blue-700 {
+  color: var(--theme-primary) !important;
+}
+[data-theme] .border-blue-600 {
+  border-color: var(--theme-primary) !important;
+}
+[data-theme] .bg-blue-50 {
+  background-color: var(--theme-primary-light) !important;
+}
+[data-theme] .focus\:ring-blue-500:focus {
+  --tw-ring-color: var(--theme-primary) !important;
+}
+[data-theme] .shadow-blue-600\/30,
+[data-theme] .shadow-blue-500\/30,
+[data-theme] .shadow-blue-500\/20 {
+  box-shadow: 0 10px 15px -3px var(--theme-primary-ring), 0 4px 6px -4px var(--theme-primary-ring) !important;
+}
+

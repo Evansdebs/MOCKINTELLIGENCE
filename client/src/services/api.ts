@@ -59,6 +59,7 @@ export const api = {
   me: () => request<any>('/auth/me'),
 
   // Settings
+  getPublicSettings: () => request<any>('/settings/public'),
   getSettings: () => request<any>('/settings'),
   updateSettings: (data: any) => request<any>('/settings', { method: 'PUT', body: JSON.stringify(data) }),
   updateGradeScales: (scales: any[]) => request<any>('/settings/grades', { method: 'PUT', body: JSON.stringify({ scales }) }),

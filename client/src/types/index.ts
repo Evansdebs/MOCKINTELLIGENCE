@@ -25,6 +25,7 @@ export interface SchoolSettings {
   stableThreshold: number;
   consecutiveDeclineAlertCount: number;
   consecutiveBelowTargetAlertCount: number;
+  primaryColor?: string;
 }
 
 export interface GradeScale {

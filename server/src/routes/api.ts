@@ -29,6 +29,7 @@ router.post('/auth/student-login', authController.studentLogin);
 router.get('/auth/me', authenticate, authController.me);
 
 // ==================== SCHOOL SETTINGS & GRADES ====================
+router.get('/settings/public', schoolController.getPublicSettings);
 router.get('/settings', authenticate, schoolController.getSettings);
 router.put('/settings', authenticate, authorize(['ADMIN', 'MANAGEMENT', 'TEACHER']), schoolController.updateSettings);
 router.put('/settings/grades', authenticate, authorize(['ADMIN', 'MANAGEMENT']), schoolController.updateGradeScales);

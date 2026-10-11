@@ -1,15 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Settings, Save, School, Award, Sliders, CheckCircle2, Plus, Trash2, Eraser, Cloud } from 'lucide-react';
+import { Settings, Save, School, Award, Sliders, CheckCircle2, Plus, Trash2, Eraser, Cloud, Palette } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
 import { api } from '../services/api';
 import { GradeScale } from '../types';
 import { BackupRestoreManager } from '../components/BackupRestoreManager';
+import { useTheme, SystemThemeColor } from '../context/ThemeContext';
 
 export const SettingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'school' | 'grading' | 'analytics' | 'permissions' | 'backup'>('school');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const { themeColor, applyTheme, presets } = useTheme();
+  const [selectedTheme, setSelectedTheme] = useState<SystemThemeColor>(themeColor);
 
   // School Settings Form
   const [schoolName, setSchoolName] = useState('');
@@ -71,7 +75,10 @@ export const SettingsPage: React.FC = () => {
           setBeceStartDate(new Date(s.beceStartDate).toISOString().split('T')[0]);
         }
         setBeceTimetable(s.beceTimetable || '');
-        setHeadteacherSignature(s.headteacherSignature || '');
+        if (s.primaryColor) {
+          setSelectedTheme(s.primaryColor as SystemThemeColor);
+          applyTheme(s.primaryColor as SystemThemeColor);
+        }
       }
       if (res.gradeScales) {
         setGradeScales(res.gradeScales);
@@ -106,8 +113,10 @@ export const SettingsPage: React.FC = () => {
         beceStartDate,
         beceTimetable,
         headteacherSignature,
+        primaryColor: selectedTheme,
       });
-      setSuccessMessage('School settings saved successfully.');
+      applyTheme(selectedTheme);
+      setSuccessMessage('School settings and system theme saved successfully.');
       setTimeout(() => setSuccessMessage(null), 3500);
     } catch (err: any) {
       alert(err.message || 'Failed to save settings.');
@@ -202,8 +211,56 @@ export const SettingsPage: React.FC = () => {
 
       {/* TAB 1: SCHOOL INFO (Section 7) */}
       {activeTab === 'school' && (
-        <form onSubmit={handleSaveSchoolSettings} className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-4">
-          <h3 className="text-sm font-bold text-slate-900 pb-2 border-b border-slate-100">
+        <form onSubmit={handleSaveSchoolSettings} className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-5">
+          <div>
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Palette className="w-4 h-4 text-blue-600" />
+                <h3 className="text-sm font-bold text-slate-900">
+                  System Theme & Brand Colors
+                </h3>
+              </div>
+              <span className="text-[11px] text-slate-500 font-medium">Reflects across Admin, Teacher, and Student Portals</span>
+            </div>
+
+            <p className="text-xs text-slate-500 mt-2 mb-3">
+              Choose the primary brand theme for your institution. Changing this color dynamically updates the sidebar accents, primary buttons, badges, indicators, and charts across all portals.
+            </p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {presets.map((preset) => {
+                const isSelected = selectedTheme === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedTheme(preset.id);
+                      applyTheme(preset.id);
+                    }}
+                    className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                      isSelected
+                        ? 'border-blue-600 bg-blue-50/50 ring-2 ring-blue-500/30 shadow-sm'
+                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div
+                      className="w-6 h-6 rounded-lg shadow-sm shrink-0 border border-black/10 flex items-center justify-center text-white"
+                      style={{ backgroundColor: preset.primary }}
+                    >
+                      {isSelected && <CheckCircle2 className="w-4 h-4" />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-900 truncate">{preset.name}</p>
+                      <p className="text-[10px] text-slate-500 font-mono">{preset.primary}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <h3 className="text-sm font-bold text-slate-900 pt-3 pb-2 border-b border-slate-100">
             School Profile & Reports Header
           </h3>
 
