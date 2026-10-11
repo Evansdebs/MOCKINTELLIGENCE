@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserCheck, Plus, X, Shield, Mail, User, BookOpen, Key, Send, CheckCircle2, Copy, Edit2 } from 'lucide-react';
+import { UserCheck, Plus, X, Shield, Mail, User, BookOpen, Key, Send, CheckCircle2, Copy, Edit2, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { api } from '../services/api';
 
 export const UsersPage: React.FC = () => {
@@ -13,6 +13,11 @@ export const UsersPage: React.FC = () => {
   const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([]);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [resetPasswordVal, setResetPasswordVal] = useState('');
+
+  // Password visibility toggles
+  const [showAddPassword, setShowAddPassword] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
 
   // Form (Add)
   const [name, setName] = useState('');
@@ -139,6 +144,19 @@ export const UsersPage: React.FC = () => {
       alert('User details updated successfully!');
     } catch (err: any) {
       setError(err.message || 'Failed to update user details.');
+    }
+  };
+
+  const handleDeleteUser = async (u: any) => {
+    if (!window.confirm(`Are you sure you want to permanently delete user "${u.name}" (@${u.username})? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      const res = await api.deleteUser(u.id);
+      alert(res.message || 'User deleted successfully.');
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete user.');
     }
   };
 
@@ -279,6 +297,13 @@ export const UsersPage: React.FC = () => {
                         <BookOpen className="w-4 h-4" />
                       </button>
                     )}
+                    <button
+                      onClick={() => handleDeleteUser(u)}
+                      className="p-1.5 text-rose-500 bg-rose-50 rounded-lg hover:bg-rose-100 hover:text-rose-700 transition-colors inline-block"
+                      title="Delete User Account"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -359,13 +384,24 @@ export const UsersPage: React.FC = () => {
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Initial Password <span className="font-normal text-slate-400">(Optional - Min 6 chars)</span>
                 </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Leave empty to send email invite / link"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
+                <div className="relative">
+                  <input
+                    type={showAddPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Leave empty to send email invite / link"
+                    className="w-full pl-3 pr-10 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAddPassword(!showAddPassword)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 transition-colors"
+                    tabIndex={-1}
+                    title={showAddPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showAddPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
                 <p className="text-[10px] text-slate-500 mt-1">
                   If left blank, Supabase Auth will generate an invitation email or link for the user.
                 </p>
@@ -474,13 +510,24 @@ export const UsersPage: React.FC = () => {
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Change Password <span className="font-normal text-slate-400">(Optional - Min 6 chars)</span>
                 </label>
-                <input
-                  type="password"
-                  value={editPassword}
-                  onChange={(e) => setEditPassword(e.target.value)}
-                  placeholder="Leave empty to keep existing password"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
+                <div className="relative">
+                  <input
+                    type={showEditPassword ? 'text' : 'password'}
+                    value={editPassword}
+                    onChange={(e) => setEditPassword(e.target.value)}
+                    placeholder="Leave empty to keep existing password"
+                    className="w-full pl-3 pr-10 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowEditPassword(!showEditPassword)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 transition-colors"
+                    tabIndex={-1}
+                    title={showEditPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showEditPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               {selectedUser.authUserId ? (
@@ -608,14 +655,25 @@ export const UsersPage: React.FC = () => {
             <form onSubmit={handleResetPassword} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">New Password *</label>
-                <input
-                  type="password"
-                  required
-                  value={resetPasswordVal}
-                  onChange={(e) => setResetPasswordVal(e.target.value)}
-                  placeholder="Min 6 characters"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
+                <div className="relative">
+                  <input
+                    type={showResetPassword ? 'text' : 'password'}
+                    required
+                    value={resetPasswordVal}
+                    onChange={(e) => setResetPasswordVal(e.target.value)}
+                    placeholder="Min 6 characters"
+                    className="w-full pl-3 pr-10 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowResetPassword(!showResetPassword)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 transition-colors"
+                    tabIndex={-1}
+                    title={showResetPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showResetPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">

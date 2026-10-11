@@ -452,3 +452,60 @@ export async function resetUserPassword(req: AuthRequest, res: Response): Promis
     res.status(500).json({ error: err.message || 'Failed to reset password.' });
   }
 }
+
+export async function deleteUser(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const id = req.params.id as string;
+    const currentUserId = req.user?.userId;
+
+    if (id === currentUserId) {
+      res.status(400).json({ error: 'You cannot delete your own admin account while logged in.' });
+      return;
+    }
+
+    const existing = await prisma.user.findUnique({
+      where: { id },
+      include: { classes: true },
+    });
+
+    if (!existing) {
+      res.status(404).json({ error: 'User not found.' });
+      return;
+    }
+
+    // Unassign this user from any assigned classrooms so the classroom remains valid
+    if (existing.classes && existing.classes.length > 0) {
+      await prisma.classRoom.updateMany({
+        where: { teacherId: id },
+        data: { teacherId: null },
+      });
+    }
+
+    // Delete from Supabase Auth if linked
+    if (existing.authUserId) {
+      const supabaseAdmin = getSupabaseAdmin();
+      await supabaseAdmin.auth.admin.deleteUser(existing.authUserId).catch((err) => {
+        console.warn('Could not delete user from Supabase Auth (or already absent):', err.message);
+      });
+    }
+
+    // Delete user from database (cascades teacher subjects)
+    await prisma.user.delete({
+      where: { id },
+    });
+
+    await logAudit({
+      userId: req.user?.userId,
+      userName: req.user?.name || 'Admin',
+      action: 'DELETE_USER',
+      recordType: 'User',
+      recordId: id,
+      newValue: `Permanently deleted user ${existing.name} (${existing.username})`,
+      ipAddress: req.ip,
+    });
+
+    res.json({ message: `User "${existing.name}" has been permanently deleted.` });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to delete user.' });
+  }
+}

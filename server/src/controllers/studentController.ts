@@ -216,6 +216,8 @@ export async function updateStudent(req: AuthRequest, res: Response): Promise<vo
 export async function deleteStudent(req: AuthRequest, res: Response): Promise<void> {
   try {
     const id = req.params.id as string;
+    const force = req.query.force === 'true';
+
     const student = await prisma.student.findUnique({
       where: { id },
       include: { _count: { select: { scores: true } } },
@@ -226,8 +228,8 @@ export async function deleteStudent(req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
-    // If student has historical exam scores, deactivate instead of wiping out examination integrity
-    if (student._count.scores > 0) {
+    // If student has historical exam scores and force was not specified, ask or deactivate
+    if (student._count.scores > 0 && !force) {
       await prisma.student.update({
         where: { id },
         data: { status: 'Inactive' },
@@ -239,17 +241,18 @@ export async function deleteStudent(req: AuthRequest, res: Response): Promise<vo
         action: 'DEACTIVATE_STUDENT',
         recordType: 'Student',
         recordId: id,
-        newValue: 'Deactivated to preserve historical examination records',
+        newValue: `Deactivated student ${student.fullName} (has ${student._count.scores} historical exam score records)`,
         ipAddress: req.ip,
       });
 
       res.json({
-        message: 'Student has historical examination scores and was deactivated to preserve exam audit integrity.',
+        message: `Student has ${student._count.scores} examination score records and was marked Inactive to preserve audit integrity.`,
         deactivated: true,
       });
       return;
     }
 
+    // Permanent delete: will cascade delete associated Score records cleanly
     await prisma.student.delete({ where: { id } });
 
     await logAudit({
@@ -258,11 +261,12 @@ export async function deleteStudent(req: AuthRequest, res: Response): Promise<vo
       action: 'DELETE_STUDENT',
       recordType: 'Student',
       recordId: id,
-      oldValue: student.fullName,
+      oldValue: `${student.fullName} (${student.indexNumber})`,
+      newValue: 'Permanently deleted student and associated examination records',
       ipAddress: req.ip,
     });
 
-    res.json({ message: 'Student permanently deleted.', deleted: true });
+    res.json({ message: `Student "${student.fullName}" has been permanently deleted from the system.`, deleted: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to delete student.' });
   }

@@ -141,11 +141,17 @@ export const StudentsPage: React.FC = () => {
   };
 
   const handleDeleteStudent = async (id: string, name: string) => {
-    if (!window.confirm(`Are you sure you want to deactivate or remove ${name}? Historical examination records will remain intact.`)) {
-      return;
-    }
+    const choice = window.prompt(
+      `Manage student "${name}":\n\n- Type "delete" to permanently delete this learner from the system.\n- Type "deactivate" or leave blank to deactivate them (preserving historical scores).\n- Click Cancel to abort.`,
+      'deactivate'
+    );
+
+    if (choice === null) return;
+
+    const force = choice.trim().toLowerCase() === 'delete';
+
     try {
-      const res = await api.deleteStudent(id);
+      const res = await api.deleteStudent(id, force);
       alert(res.message);
       loadStudents();
     } catch (err: any) {

@@ -101,6 +101,7 @@ router.get('/audit-logs', authenticate, authorize(['ADMIN']), auditController.ge
 router.get('/users', authenticate, authorize(['ADMIN']), userController.getUsers);
 router.post('/users', authenticate, authorize(['ADMIN']), userController.createUser);
 router.put('/users/:id', authenticate, authorize(['ADMIN']), userController.updateUser);
+router.delete('/users/:id', authenticate, authorize(['ADMIN']), userController.deleteUser);
 router.put('/users/:id/password', authenticate, authorize(['ADMIN']), userController.resetUserPassword);
 router.post('/users/:id/invite-auth', authenticate, authorize(['ADMIN']), userController.inviteStaffToAuth);
 // ==================== SYSTEM BACKUP & RESTORE ====================

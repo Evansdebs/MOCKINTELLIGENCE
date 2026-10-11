@@ -72,7 +72,7 @@ export const api = {
   getStudentById: (id: string) => request<any>(`/students/${id}`),
   createStudent: (data: any) => request<any>('/students', { method: 'POST', body: JSON.stringify(data) }),
   updateStudent: (id: string, data: any) => request<any>(`/students/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteStudent: (id: string) => request<any>(`/students/${id}`, { method: 'DELETE' }),
+  deleteStudent: (id: string, force = false) => request<any>(`/students/${id}${force ? '?force=true' : ''}`, { method: 'DELETE' }),
   previewStudentImport: (formData: FormData) => request<any>('/students/import/preview', { method: 'POST', body: formData }),
   commitStudentImport: (students: any[]) => request<any>('/students/import/commit', { method: 'POST', body: JSON.stringify({ students }) }),
 
@@ -169,6 +169,7 @@ export const api = {
   getUsers: () => request<any>('/users'),
   createUser: (data: any) => request<any>('/users', { method: 'POST', body: JSON.stringify(data) }),
   updateUser: (id: string, data: any) => request<any>(`/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteUser: (id: string) => request<any>(`/users/${id}`, { method: 'DELETE' }),
   updateUserSubjects: (id: string, subjectIds: string[]) => request<any>(`/users/${id}/subjects`, { method: 'PUT', body: JSON.stringify({ subjectIds }) }),
   resetUserPassword: (id: string, newPassword: string) => request<any>(`/users/${id}/password`, { method: 'PUT', body: JSON.stringify({ newPassword }) }),
   inviteStaffToAuth: (id: string) => request<any>(`/users/${id}/invite-auth`, { method: 'POST' }),
