@@ -33,7 +33,7 @@ export async function getUsers(req: AuthRequest, res: Response): Promise<void> {
 
 export async function createUser(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { username, email, name, role } = req.body;
+    const { username, email, name, role, password } = req.body;
     if (!username || !email || !name || !role) {
       res.status(400).json({ error: 'Username, email, name, and role are required.' });
       return;
@@ -53,21 +53,56 @@ export async function createUser(req: AuthRequest, res: Response): Promise<void>
       return;
     }
 
-    // Step 1: Send invitation via Supabase Auth Admin API
     const supabaseAdmin = getSupabaseAdmin();
-    const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-      trimmedEmail
-    );
+    let authUserId: string | null = null;
+    let setupLink: string | null = null;
+    let successMessage = '';
 
-    if (inviteError || !inviteData?.user) {
-      const msg = inviteError?.message || 'Failed to send Supabase Auth invite.';
-      res.status(400).json({
-        error: `Supabase Auth error: ${msg}. If this email is already registered in Auth, please resolve the Auth identity before creating.`,
+    // Track A: Admin specified an initial password for the staff member
+    if (password && password.trim().length >= 6) {
+      const { data: createData, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email: trimmedEmail,
+        password: password.trim(),
+        email_confirm: true,
       });
-      return;
-    }
 
-    const authUserId = inviteData.user.id;
+      if (createError || !createData?.user) {
+        res.status(400).json({
+          error: `Supabase Auth error: ${createError?.message || 'Failed to create user in Auth.'}`,
+        });
+        return;
+      }
+      authUserId = createData.user.id;
+      successMessage = 'Staff account created successfully with initial password in Supabase Auth.';
+    } else {
+      // Track B: Invite by email. If SMTP fails, fallback gracefully to generateLink so admin isn't blocked!
+      const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+        trimmedEmail
+      );
+
+      if (!inviteError && inviteData?.user) {
+        authUserId = inviteData.user.id;
+        successMessage = 'Staff account created and invitation email sent successfully.';
+      } else {
+        // SMTP dispatch failed (e.g. rate limit, unconfigured SMTP). Fallback to generateLink!
+        const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+          type: 'invite',
+          email: trimmedEmail,
+        });
+
+        if (linkError || !linkData?.user) {
+          res.status(400).json({
+            error: `Supabase Auth error: ${inviteError?.message || linkError?.message}. If this email exists in Auth, remove it from Supabase before re-adding.`,
+          });
+          return;
+        }
+
+        authUserId = linkData.user.id;
+        setupLink = linkData.properties?.action_link || null;
+        successMessage =
+          'Staff account created in Supabase Auth. Because email delivery is currently restricted, use the setup link provided below.';
+      }
+    }
 
     // Step 2: Insert public."User" pre-bound to authUserId with passwordHash: null
     try {
@@ -99,25 +134,26 @@ export async function createUser(req: AuthRequest, res: Response): Promise<void>
         action: 'CREATE_USER',
         recordType: 'User',
         recordId: user.id,
-        newValue: `Created staff user ${user.name} (${user.role}) and sent Supabase invite`,
+        newValue: `Created staff user ${user.name} (${user.role}) in Supabase Auth`,
         ipAddress: req.ip,
       });
 
       res.status(201).json({
         user,
-        message: 'Staff account created and Supabase invitation email sent successfully.',
+        message: successMessage,
+        setupLink,
       });
     } catch (prismaErr: any) {
       // Compensating action: Delete the created Auth user to prevent orphaned identities.
-      // Note: An invitation email was already dispatched by Supabase, but deleting the Auth record
-      // invalidates the invite token immediately.
-      await supabaseAdmin.auth.admin.deleteUser(authUserId).catch((delErr) => {
-        console.error('Failed compensating delete of auth user:', delErr);
-      });
+      if (authUserId) {
+        await supabaseAdmin.auth.admin.deleteUser(authUserId).catch((delErr) => {
+          console.error('Failed compensating delete of auth user:', delErr);
+        });
+      }
 
       console.error('Database write failed during staff creation:', prismaErr);
       res.status(500).json({
-        error: 'Failed to record user in database. The Supabase invitation was revoked for consistency.',
+        error: 'Failed to record user in database. The Supabase identity was revoked for consistency.',
       });
     }
   } catch (err: any) {
@@ -144,19 +180,35 @@ export async function inviteStaffToAuth(req: AuthRequest, res: Response): Promis
     }
 
     const supabaseAdmin = getSupabaseAdmin();
+    let authUserId: string | null = null;
+    let setupLink: string | null = null;
+    let successMessage = '';
+
     const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
       user.email
     );
 
-    if (inviteError || !inviteData?.user) {
-      const msg = inviteError?.message || 'Failed to send Supabase Auth invite.';
-      res.status(400).json({
-        error: `Supabase Auth error: ${msg}. If this email is already registered in Auth, please resolve the Auth identity before inviting.`,
+    if (!inviteError && inviteData?.user) {
+      authUserId = inviteData.user.id;
+      successMessage = `Supabase Auth invitation email sent to ${user.email} and account bound.`;
+    } else {
+      // Fallback to generateLink if email sending failed
+      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+        type: 'invite',
+        email: user.email,
       });
-      return;
-    }
 
-    const authUserId = inviteData.user.id;
+      if (linkError || !linkData?.user) {
+        res.status(400).json({
+          error: `Supabase Auth error: ${inviteError?.message || linkError?.message}. If this email is already registered in Auth, please resolve it in Supabase Dashboard.`,
+        });
+        return;
+      }
+
+      authUserId = linkData.user.id;
+      setupLink = linkData.properties?.action_link || null;
+      successMessage = `Account bound to Supabase Auth. Email delivery failed, so use the setup link provided below.`;
+    }
 
     try {
       await prisma.user.update({
@@ -175,17 +227,19 @@ export async function inviteStaffToAuth(req: AuthRequest, res: Response): Promis
       });
 
       res.json({
-        message: `Supabase Auth invitation sent to ${user.email} and account bound.`,
+        message: successMessage,
         authUserId,
+        setupLink,
       });
     } catch (prismaErr: any) {
-      // Compensating action: Delete newly created Auth identity
-      await supabaseAdmin.auth.admin.deleteUser(authUserId).catch((delErr) => {
-        console.error('Failed compensating delete of auth user on invite:', delErr);
-      });
+      if (authUserId) {
+        await supabaseAdmin.auth.admin.deleteUser(authUserId).catch((delErr) => {
+          console.error('Failed compensating delete of auth user on invite:', delErr);
+        });
+      }
 
       res.status(500).json({
-        error: 'Failed to bind authUserId in database. The Supabase invitation has been revoked.',
+        error: 'Failed to bind authUserId in database. The Supabase identity has been revoked.',
       });
     }
   } catch (err: any) {

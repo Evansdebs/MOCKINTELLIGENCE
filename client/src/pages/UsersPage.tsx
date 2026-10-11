@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserCheck, Plus, X, Shield, Mail, User, BookOpen, Key, Send, CheckCircle2 } from 'lucide-react';
+import { UserCheck, Plus, X, Shield, Mail, User, BookOpen, Key, Send, CheckCircle2, Copy } from 'lucide-react';
 import { api } from '../services/api';
 
 export const UsersPage: React.FC = () => {
@@ -20,6 +20,14 @@ export const UsersPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'ADMIN' | 'TEACHER' | 'MANAGEMENT'>('TEACHER');
   const [error, setError] = useState<string | null>(null);
+
+  // Setup Link Dialog
+  const [setupLinkModal, setSetupLinkModal] = useState<{ open: boolean; link: string; message: string; email: string }>({
+    open: false,
+    link: '',
+    message: '',
+    email: '',
+  });
 
   useEffect(() => {
     loadData();
@@ -72,12 +80,32 @@ export const UsersPage: React.FC = () => {
     e.preventDefault();
     setError(null);
     try {
-      await api.createUser({ name, username, email, role });
+      const res = await api.createUser({
+        name,
+        username,
+        email,
+        role,
+        password: password.trim() ? password.trim() : undefined,
+      });
+
       setIsAddModalOpen(false);
+      const createdEmail = email;
       setName('');
       setUsername('');
       setEmail('');
+      setPassword('');
       loadData();
+
+      if (res?.setupLink) {
+        setSetupLinkModal({
+          open: true,
+          link: res.setupLink,
+          message: res.message || 'Account created in Supabase Auth.',
+          email: createdEmail,
+        });
+      } else {
+        alert(res?.message || 'Staff account created successfully!');
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to create user account.');
     }
@@ -149,11 +177,20 @@ export const UsersPage: React.FC = () => {
                     {!u.authUserId ? (
                       <button
                         onClick={async () => {
-                          if (window.confirm(`Send Supabase Auth invite email to ${u.email}?`)) {
+                          if (window.confirm(`Invite ${u.email} to Supabase Auth?`)) {
                             try {
-                              await api.inviteStaffToAuth(u.id);
-                              alert(`Invite sent successfully to ${u.email}!`);
+                              const res = await api.inviteStaffToAuth(u.id);
                               loadData();
+                              if (res?.setupLink) {
+                                setSetupLinkModal({
+                                  open: true,
+                                  link: res.setupLink,
+                                  message: res.message || 'Staff account bound to Supabase Auth.',
+                                  email: u.email,
+                                });
+                              } else {
+                                alert(res?.message || `Invite sent successfully to ${u.email}!`);
+                              }
                             } catch (err: any) {
                               alert(err.message || 'Failed to send invite.');
                             }
@@ -271,8 +308,24 @@ export const UsersPage: React.FC = () => {
                 />
               </div>
 
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Initial Password <span className="font-normal text-slate-400">(Optional - Min 6 chars)</span>
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Leave empty to send email invite / link"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">
+                  If left blank, Supabase Auth will generate an invitation email or link for the user.
+                </p>
+              </div>
+
               <div className="p-3 bg-purple-50/70 border border-purple-200/60 rounded-xl text-[11px] text-purple-900 leading-relaxed">
-                A Supabase Auth invitation email will be sent automatically to this address so the staff member can set their password securely.
+                Staff accounts are securely authenticated by Supabase Auth. If initial password is set, the staff member can log in right away.
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
@@ -412,6 +465,67 @@ export const UsersPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Setup Link Modal */}
+      {setupLinkModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900">Supabase Auth Setup Link</h3>
+              <button
+                onClick={() => setSetupLinkModal({ open: false, link: '', message: '', email: '' })}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <p className="text-xs text-slate-600">
+                {setupLinkModal.message}
+              </p>
+
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900">
+                <span className="font-semibold block mb-1">Direct Account Activation:</span>
+                Send this link directly to <strong>{setupLinkModal.email}</strong> to set their password.
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                  Setup / Invitation Link
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={setupLinkModal.link}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-800 focus:outline-none select-all"
+                  />
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(setupLinkModal.link);
+                      alert('Setup link copied to clipboard!');
+                    }}
+                    className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Copy</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 mt-4 border-t border-slate-100 flex justify-end">
+              <button
+                onClick={() => setSetupLinkModal({ open: false, link: '', message: '', email: '' })}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold"
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}
