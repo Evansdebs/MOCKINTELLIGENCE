@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <rect width="100" height="100" rx="28" fill="url(#bgGrad)" />
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#2563EB" />
+      <stop offset="50%" stopColor="#4F46E5" />
+      <stop offset="100%" stopColor="#7C3AED" />
+    </linearGradient>
+    <linearGradient id="orGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#FFFFFF" />
+      <stop offset="100%" stopColor="#EEF2FF" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="1" dy="2" stdDeviation="2" floodColor="#0F172A" floodOpacity="0.35" />
+    </filter>
+  </defs>
+
+  <!-- Letter "O" -->
+  <path
+    d="M 32,20 C 17,20 8,32 8,50 C 8,68 17,80 32,80 C 42,80 49,74 53,65 L 43,60 C 40,66 36,70 32,70 C 23,70 18,61 18,50 C 18,39 23,30 32,30 C 39,30 43,35 46,42 L 55,36 C 50,26 43,20 32,20 Z"
+    fill="url(#orGrad)"
+    filter="url(#shadow)"
+  />
+
+  <!-- Letter "R" -->
+  <path d="M 45,21 L 55,21 L 55,79 L 45,79 Z" fill="url(#orGrad)" filter="url(#shadow)" />
+  <path d="M 54,21 L 72,21 C 84,21 91,28 91,38 C 91,48 83,55 71,55 L 54,55 Z M 55,31 L 70,31 C 77,31 80,34 80,38 C 80,42 77,45 70,45 L 55,45 Z" fill="url(#orGrad)" filter="url(#shadow)" />
+  <path d="M 68,52 L 88,79 L 77,79 L 59,54 Z" fill="#FFFFFF" filter="url(#shadow)" />
+  <circle cx="89" cy="74" r="2.4" fill="#FDE047" />
+</svg>

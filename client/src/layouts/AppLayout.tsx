@@ -25,6 +25,7 @@ import {
   Scan,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { AppLogo } from '../components/AppLogo';
 
 export const AppLayout: React.FC = () => {
   const { user, logout, isAdmin, isTeacher, isManagement } = useAuth();
@@ -82,18 +83,8 @@ export const AppLayout: React.FC = () => {
       {/* Sidebar Desktop */}
       <aside className="print:hidden hidden md:flex flex-col w-72 bg-slate-900 text-slate-200 border-r border-slate-800 shrink-0 select-none">
         {/* Brand */}
-        <div className="p-6 border-b border-slate-800/80">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
-              <TrendingUp className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="font-extrabold text-base tracking-tight text-white leading-tight">
-                MOCK INTEL
-              </h1>
-              <p className="text-[11px] text-blue-400 font-medium">Basic 9 BECE Analytics</p>
-            </div>
-          </div>
+        <div className="p-5 border-b border-slate-800/80">
+          <AppLogo size="md" showText={true} textColor="text-white" />
         </div>
 
         {/* Navigation links */}
@@ -155,15 +146,7 @@ export const AppLayout: React.FC = () => {
 
       {/* Mobile Header */}
       <header className="print:hidden md:hidden bg-slate-900 text-white px-4 py-3 flex items-center justify-between border-b border-slate-800 sticky top-0 z-50">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white">
-            <TrendingUp className="w-4 h-4" />
-          </div>
-          <div>
-            <h1 className="font-bold text-sm leading-none">MOCK INTEL</h1>
-            <p className="text-[10px] text-blue-400">Basic 9 BECE</p>
-          </div>
-        </div>
+        <AppLogo size="sm" showText={true} textColor="text-white" />
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="p-2 text-slate-300 hover:text-white rounded-lg focus:outline-none"

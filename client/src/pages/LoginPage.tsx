@@ -4,6 +4,7 @@ import { TrendingUp, Lock, User as UserIcon, Eye, EyeOff, ArrowRight, ShieldChec
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { BearAvatar } from '../components/BearAvatar';
+import { AppLogo } from '../components/AppLogo';
 
 export const LoginPage: React.FC = () => {
   const { login, studentLogin } = useAuth();
@@ -120,19 +121,14 @@ export const LoginPage: React.FC = () => {
         <div className="relative rounded-3xl p-6 md:p-8 shadow-2xl shadow-indigo-100/70 backdrop-blur-xl bg-white/95 border border-slate-200/90 ring-1 ring-slate-100">
           {/* Brand Header */}
           <div className="text-center mb-6">
-            <div className="relative inline-block mb-2">
-              <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg transform hover:scale-105 transition-transform duration-300"
-                style={{ backgroundColor: themeColor }}
-              >
-                <TrendingUp className="w-6 h-6" />
-              </div>
+            <div className="relative inline-block mb-3">
+              <AppLogo size="xl" />
               <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-md bg-white border border-slate-200 flex items-center justify-center text-slate-800 text-[9px] font-black shadow-xs">
                 B9
               </div>
             </div>
             <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
-              MOCK PERFORMANCE INTELLIGENCE
+              <span className="text-indigo-600">ONEREAL</span> MOCK PERFORMANCE INTELLIGENCE
             </h1>
             <p className="text-xs text-slate-500 mt-1 font-medium">
               Basic 9 Examination Diagnostics & Performance Analytics
@@ -308,10 +304,10 @@ export const LoginPage: React.FC = () => {
         {/* Friendly Footer */}
         <div className="text-center mt-5 space-y-1">
           <p className="text-[11px] text-slate-500 font-medium">
-            Achimota Model BECE Candidate Performance & Diagnostic Portal
+            BECE Candidate Performance & Diagnostic Portal
           </p>
           <p className="text-[10px] text-slate-400">
-            Powered by Mock Intelligence Core • Secured with Supabase Auth
+            Powered by OneReal IT Consult
           </p>
         </div>
       </div>
