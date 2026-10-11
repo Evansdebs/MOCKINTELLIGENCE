@@ -102,6 +102,7 @@ router.get('/users', authenticate, authorize(['ADMIN']), userController.getUsers
 router.post('/users', authenticate, authorize(['ADMIN']), userController.createUser);
 router.put('/users/:id', authenticate, authorize(['ADMIN']), userController.updateUser);
 router.delete('/users/:id', authenticate, authorize(['ADMIN']), userController.deleteUser);
+router.put('/users/:id/subjects', authenticate, authorize(['ADMIN']), userController.updateUserSubjects);
 router.put('/users/:id/password', authenticate, authorize(['ADMIN']), userController.resetUserPassword);
 router.post('/users/:id/invite-auth', authenticate, authorize(['ADMIN']), userController.inviteStaffToAuth);
 // ==================== SYSTEM BACKUP & RESTORE ====================
