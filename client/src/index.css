@@ -226,4 +226,22 @@
     linear-gradient(to bottom, rgba(226, 232, 240, 0.6) 1px, transparent 1px);
 }
 
+/* Animated Glowing Border for Cards */
+@keyframes borderGlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-border-glow {
+  background-size: 250% 250%;
+  animation: borderGlow 5s ease-in-out infinite;
+}
+
 

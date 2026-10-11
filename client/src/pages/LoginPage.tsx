@@ -117,8 +117,16 @@ export const LoginPage: React.FC = () => {
           />
         </div>
 
-        {/* Light Glassmorphism Login Card */}
-        <div className="relative rounded-3xl p-6 md:p-8 shadow-2xl shadow-indigo-100/70 backdrop-blur-xl bg-blue-50/95 border border-slate-200/90 ring-1 ring-slate-100">
+        {/* Light Glassmorphism Login Card with Animated Glowing Light Border */}
+        <div className="relative group/card">
+          {/* Ambient Soft Outer Glow */}
+          <div className="absolute -inset-1 rounded-[28px] bg-gradient-to-r from-blue-600 via-sky-400 via-indigo-500 to-cyan-400 opacity-40 blur-xl animate-border-glow pointer-events-none" />
+
+          {/* Crisp Animated Glowing Border Ring */}
+          <div className="absolute -inset-[2px] rounded-[26px] bg-gradient-to-r from-blue-600 via-sky-400 via-indigo-400 via-teal-300 to-blue-600 opacity-90 blur-[1px] animate-border-glow pointer-events-none" />
+
+          {/* Card Body */}
+          <div className="relative rounded-3xl p-6 md:p-8 shadow-2xl shadow-indigo-100/70 backdrop-blur-xl bg-blue-50/95 border border-white/70">
           {/* Brand Header */}
           <div className="text-center mb-6">
             <div className="relative inline-block mb-3">
@@ -300,6 +308,7 @@ export const LoginPage: React.FC = () => {
             </button>
           </form>
         </div>
+      </div>
 
         {/* Friendly Footer */}
         <div className="text-center mt-5 space-y-1">
