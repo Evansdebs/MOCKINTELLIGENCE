@@ -1,4 +1,15 @@
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+const getApiBase = (): string => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl) {
+    return envUrl.replace(/\/+$/, '').replace(/\/api$/, '');
+  }
+  if (import.meta.env.PROD) {
+    return 'https://mockintelligence.vercel.app';
+  }
+  return '/api';
+};
+
+const API_BASE = getApiBase();
 
 export async function request<T>(
   endpoint: string,
