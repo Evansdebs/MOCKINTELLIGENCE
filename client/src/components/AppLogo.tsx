@@ -1,11 +1,11 @@
 import React from 'react';
-import { useTheme } from '../context/ThemeContext';
 
 interface AppLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   showText?: boolean;
   textColor?: string;
+  standalone?: boolean; // Just the emblem without container box
 }
 
 export const AppLogo: React.FC<AppLogoProps> = ({
@@ -13,113 +13,177 @@ export const AppLogo: React.FC<AppLogoProps> = ({
   className = '',
   showText = false,
   textColor = 'text-white',
+  standalone = false,
 }) => {
-  const { themeColor } = useTheme();
-
-  // Size mappings for badge
-  const sizeMap = {
-    sm: 'w-8 h-8 rounded-lg text-xs',
-    md: 'w-10 h-10 rounded-xl text-sm',
-    lg: 'w-12 h-12 rounded-2xl text-base',
-    xl: 'w-16 h-16 rounded-2xl text-lg',
+  // Dimension definitions
+  const badgeSizeMap = {
+    sm: 'w-8 h-8 rounded-lg',
+    md: 'w-10 h-10 rounded-xl',
+    lg: 'w-14 h-14 rounded-2xl',
+    xl: 'w-20 h-20 rounded-2xl',
   };
 
-  const svgDimensions = {
+  const svgPixelMap = {
     sm: 32,
     md: 40,
-    lg: 48,
-    xl: 64,
+    lg: 56,
+    xl: 80,
   };
 
-  const dim = svgDimensions[size];
+  const px = svgPixelMap[size];
+
+  // SVG graphic representing the exact metallic "OR" monogram on cobalt blue
+  const EmblemSVG = (
+    <svg
+      viewBox="0 0 460 300"
+      className="w-full h-full overflow-visible drop-shadow-md select-none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <defs>
+        {/* Brushed Silver Metallic Gradients */}
+        <linearGradient id="metalGradMain" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#FFFFFF" />
+          <stop offset="20%" stopColor="#CBD5E1" />
+          <stop offset="45%" stopColor="#94A3B8" />
+          <stop offset="55%" stopColor="#E2E8F0" />
+          <stop offset="75%" stopColor="#64748B" />
+          <stop offset="90%" stopColor="#CBD5E1" />
+          <stop offset="100%" stopColor="#FFFFFF" />
+        </linearGradient>
+
+        <linearGradient id="metalGradHighlight" x1="20%" y1="0%" x2="80%" y2="100%">
+          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.9" />
+          <stop offset="35%" stopColor="#E2E8F0" stopOpacity="0.6" />
+          <stop offset="70%" stopColor="#94A3B8" stopOpacity="0.4" />
+          <stop offset="100%" stopColor="#F8FAFC" stopOpacity="0.8" />
+        </linearGradient>
+
+        <linearGradient id="metalRGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#F8FAFC" />
+          <stop offset="25%" stopColor="#E2E8F0" />
+          <stop offset="50%" stopColor="#94A3B8" />
+          <stop offset="75%" stopColor="#CBD5E1" />
+          <stop offset="100%" stopColor="#64748B" />
+        </linearGradient>
+
+        {/* Deep 3D Drop Shadow */}
+        <filter id="metalShadow" x="-20%" y="-20%" width="150%" height="150%">
+          <feDropShadow dx="3" dy="12" stdDeviation="10" floodColor="#001845" floodOpacity="0.85" />
+          <feDropShadow dx="1" dy="4" stdDeviation="4" floodColor="#000c24" floodOpacity="0.9" />
+        </filter>
+
+        {/* Shadow cast by O onto R */}
+        <filter id="overlapShadow" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="8" dy="2" stdDeviation="6" floodColor="#001233" floodOpacity="0.9" />
+        </filter>
+      </defs>
+
+      {/* --- LETTER "R" (Positioned behind O) --- */}
+      <g filter="url(#metalShadow)">
+        <path
+          d={`
+            M 210,58
+            C 225,58 245,58 275,58
+            C 318,58 350,68 368,90
+            C 382,107 388,127 388,148
+            C 388,185 365,208 322,216
+            C 336,227 354,244 374,264
+            C 390,279 406,288 424,288
+            C 412,284 398,272 388,255
+            C 374,233 355,204 330,192
+            C 320,188 308,186 288,186
+            L 288,245
+            L 225,245
+            L 225,225
+            C 246,195 258,162 258,125
+            C 258,95 248,72 230,58
+            Z
+          `}
+          fill="url(#metalRGrad)"
+          stroke="#94A3B8"
+          strokeWidth="1.2"
+        />
+
+        {/* Inner Counter / Hole of "R" */}
+        <path
+          d={`
+            M 288,102
+            L 288,146
+            C 305,146 325,146 338,142
+            C 348,139 352,132 352,124
+            C 352,112 344,106 332,103
+            C 322,102 305,102 288,102
+            Z
+          `}
+          fill="#0c3c9e" // Matches deep blue background cut
+        />
+      </g>
+
+      {/* --- LETTER "O" (In foreground, overlapping R) --- */}
+      <g filter="url(#metalShadow)">
+        {/* Outer Ring of O */}
+        <path
+          fillRule="evenodd"
+          d={`
+            M 178,58
+            C 245,58 290,102 290,173
+            C 290,244 245,288 178,288
+            C 111,288 66,244 66,173
+            C 66,102 111,58 178,58
+            Z
+            M 178,105
+            C 142,105 119,132 119,173
+            C 119,214 142,241 178,241
+            C 214,241 237,214 237,173
+            C 237,132 214,105 178,105
+            Z
+          `}
+          fill="url(#metalGradMain)"
+          stroke="#94A3B8"
+          strokeWidth="1.2"
+        />
+
+        {/* Subtle Specular Sheen Over O */}
+        <path
+          fillRule="evenodd"
+          d={`
+            M 178,60
+            C 240,60 285,103 285,173
+            C 285,190 280,208 270,225
+            C 260,180 230,120 178,110
+            C 130,120 100,180 90,225
+            C 75,200 71,185 71,173
+            C 71,103 116,60 178,60
+            Z
+          `}
+          fill="url(#metalGradHighlight)"
+          opacity="0.5"
+        />
+      </g>
+    </svg>
+  );
+
+  if (standalone) {
+    return (
+      <div className={`relative flex items-center justify-center ${className}`}>
+        {EmblemSVG}
+      </div>
+    );
+  }
 
   return (
     <div className={`inline-flex items-center gap-3 ${className}`}>
-      {/* Modern Designed "OR" Monogram Badge */}
+      {/* Cobalt Blue Squircle Badge exactly matching the reference background */}
       <div
-        className={`relative flex items-center justify-center shrink-0 select-none transition-transform duration-300 hover:scale-105 shadow-md ${sizeMap[size]}`}
+        className={`relative flex items-center justify-center shrink-0 select-none transition-transform duration-300 hover:scale-105 shadow-xl ${badgeSizeMap[size]}`}
         style={{
-          background: themeColor 
-            ? `linear-gradient(135deg, ${themeColor} 0%, #1D4ED8 100%)`
-            : 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 60%, #1E40AF 100%)',
-          boxShadow: '0 4px 14px -2px rgba(37, 99, 235, 0.35)',
+          background: 'linear-gradient(145deg, #0d46b8 0%, #093796 55%, #05266e 100%)',
+          boxShadow: '0 8px 24px -3px rgba(9, 55, 150, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.25)',
         }}
       >
-        {/* Subtle glossy glass highlight on top */}
-        <div className="absolute inset-x-0 top-0 h-1/2 bg-white/15 rounded-t-[inherit] pointer-events-none" />
-
-        {/* Clean, Bold, Geometric "OR" Vector Emblem */}
-        <svg
-          viewBox="0 0 100 100"
-          width={dim * 0.75}
-          height={dim * 0.75}
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className="overflow-visible"
-        >
-          {/* Subtle drop shadow */}
-          <defs>
-            <filter id="cleanShadow" x="-10%" y="-10%" width="120%" height="120%">
-              <feDropShadow dx="0" dy="1.5" stdDeviation="1.2" floodColor="#0F172A" floodOpacity="0.25" />
-            </filter>
-            <linearGradient id="whiteGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#FFFFFF" />
-              <stop offset="100%" stopColor="#F1F5F9" />
-            </linearGradient>
-          </defs>
-
-          {/* Letter "O": Thick, clean modern geometric ring */}
-          <path
-            d="M 31,23 
-               C 17,23 7,34 7,50 
-               C 7,66 17,77 31,77 
-               C 45,77 55,66 55,50 
-               C 55,34 45,23 31,23 Z 
-               M 31,35 
-               C 39,35 44,41 44,50 
-               C 44,59 39,65 31,65 
-               C 23,65 18,59 18,50 
-               C 18,41 23,35 31,35 Z"
-            fill="url(#whiteGrad)"
-            filter="url(#cleanShadow)"
-          />
-
-          {/* Letter "R": Confident modern architectural typography */}
-          {/* Vertical Stem */}
-          <path
-            d="M 52,23 L 63,23 L 63,77 L 52,77 Z"
-            fill="url(#whiteGrad)"
-            filter="url(#cleanShadow)"
-          />
-
-          {/* Loop / Upper Bowl */}
-          <path
-            d="M 63,23 
-               L 78,23 
-               C 88,23 94,29 94,38 
-               C 94,47 88,53 78,53 
-               L 63,53 Z 
-               M 63,34 
-               L 77,34 
-               C 81,34 83,36 83,38 
-               C 83,40 81,42 77,42 
-               L 63,42 Z"
-            fill="url(#whiteGrad)"
-            filter="url(#cleanShadow)"
-          />
-
-          {/* Angular Dynamic Leg / Kick */}
-          <path
-            d="M 73,50 
-               L 93,77 
-               L 81,77 
-               L 64,52 Z"
-            fill="url(#whiteGrad)"
-            filter="url(#cleanShadow)"
-          />
-        </svg>
-
-        <span className="sr-only">ONEREAL OR Logo</span>
+        <div className="w-[88%] h-[88%] flex items-center justify-center">
+          {EmblemSVG}
+        </div>
       </div>
 
       {showText && (
