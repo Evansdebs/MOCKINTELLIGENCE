@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TrendingUp, Lock, User as UserIcon, Eye, EyeOff, ArrowRight, ShieldCheck, Sparkles, School, GraduationCap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { BearAvatar } from '../components/BearAvatar';
 
 export const LoginPage: React.FC = () => {
   const { login, studentLogin } = useAuth();
@@ -18,12 +19,14 @@ export const LoginPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Mouse Parallax coordinates
+  // Mascot Focus States
+  const [isUsernameFocused, setIsUsernameFocused] = useState(false);
+  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
+
+  // Parallax Coordinates for subtle card depth
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Track mouse coordinates for interactive parallax
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
@@ -31,117 +34,6 @@ export const LoginPage: React.FC = () => {
     const y = (e.clientY - rect.top) / rect.height - 0.5;
     setMousePos({ x, y });
   };
-
-  // Interactive Particle Mesh Canvas Animation
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let animationFrameId: number;
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
-
-    const handleResize = () => {
-      if (!canvas) return;
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
-    };
-    window.addEventListener('resize', handleResize);
-
-    // Particle nodes
-    const particleCount = Math.min(Math.floor((width * height) / 14000), 75);
-    const particles: Array<{
-      x: number;
-      y: number;
-      vx: number;
-      vy: number;
-      radius: number;
-      baseRadius: number;
-    }> = [];
-
-    for (let i = 0; i < particleCount; i++) {
-      const radius = Math.random() * 2 + 1;
-      particles.push({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 0.7,
-        vy: (Math.random() - 0.5) * 0.7,
-        radius,
-        baseRadius: radius,
-      });
-    }
-
-    let mouseX = width / 2;
-    let mouseY = height / 2;
-
-    const onPointerMove = (e: MouseEvent) => {
-      mouseX = e.clientX;
-      mouseY = e.clientY;
-    };
-    window.addEventListener('mousemove', onPointerMove);
-
-    // Render loop
-    const render = () => {
-      ctx.clearRect(0, 0, width, height);
-
-      // Draw and update particles
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
-
-        // Move
-        p.x += p.vx;
-        p.y += p.vy;
-
-        // Bounce on boundaries
-        if (p.x < 0 || p.x > width) p.vx *= -1;
-        if (p.y < 0 || p.y > height) p.vy *= -1;
-
-        // Gravitate slightly towards cursor
-        const dx = mouseX - p.x;
-        const dy = mouseY - p.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 180) {
-          p.x += (dx / dist) * 0.6;
-          p.y += (dy / dist) * 0.6;
-          p.radius = p.baseRadius * 1.6;
-        } else {
-          p.radius = p.baseRadius;
-        }
-
-        // Draw particle node
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(147, 197, 253, 0.55)';
-        ctx.fill();
-
-        // Connect nearby particles with subtle glowing lines
-        for (let j = i + 1; j < particles.length; j++) {
-          const p2 = particles[j];
-          const distance = Math.hypot(p.x - p2.x, p.y - p2.y);
-          if (distance < 120) {
-            ctx.beginPath();
-            ctx.moveTo(p.x, p.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.strokeStyle = `rgba(96, 165, 250, ${0.22 * (1 - distance / 120)})`;
-            ctx.lineWidth = 0.8;
-            ctx.stroke();
-          }
-        }
-      }
-
-      animationFrameId = requestAnimationFrame(render);
-    };
-
-    render();
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('mousemove', onPointerMove);
-    };
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,91 +55,102 @@ export const LoginPage: React.FC = () => {
     }
   };
 
+  // Get active username length for tracking
+  const currentUsernameLength = loginType === 'staff' ? username.length : indexNumber.length;
+
   return (
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      className="min-h-screen bg-slate-950 bg-tech-grid flex items-center justify-center p-4 relative overflow-hidden select-none"
+      className="min-h-screen bg-gradient-to-br from-amber-50/50 via-sky-50/50 to-indigo-50/60 bg-light-dots flex items-center justify-center p-4 relative overflow-hidden select-none"
     >
-      {/* Interactive Particle Network Canvas */}
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 pointer-events-none z-0"
-      />
-
-      {/* Floating Animated Ambient Glow Orbs reacting to parallax */}
+      {/* Soft Ambient Pastel Glow Orbs */}
       <div
-        className="absolute w-[500px] h-[500px] rounded-full bg-blue-600/25 blur-[120px] pointer-events-none animate-float-slow transition-transform duration-700 ease-out"
+        className="absolute w-[500px] h-[500px] rounded-full bg-sky-200/40 blur-[110px] pointer-events-none animate-float-slow transition-transform duration-700 ease-out"
         style={{
-          top: '15%',
-          left: '18%',
-          transform: `translate(${mousePos.x * -40}px, ${mousePos.y * -40}px)`,
+          top: '10%',
+          left: '12%',
+          transform: `translate(${mousePos.x * -35}px, ${mousePos.y * -35}px)`,
         }}
       />
       <div
-        className="absolute w-[450px] h-[450px] rounded-full bg-indigo-600/20 blur-[130px] pointer-events-none animate-float-reverse transition-transform duration-700 ease-out"
+        className="absolute w-[460px] h-[460px] rounded-full bg-indigo-200/35 blur-[120px] pointer-events-none animate-float-reverse transition-transform duration-700 ease-out"
         style={{
-          bottom: '12%',
-          right: '15%',
-          transform: `translate(${mousePos.x * 50}px, ${mousePos.y * 50}px)`,
+          bottom: '8%',
+          right: '12%',
+          transform: `translate(${mousePos.x * 40}px, ${mousePos.y * 40}px)`,
         }}
       />
       <div
-        className="absolute w-[350px] h-[350px] rounded-full bg-cyan-500/15 blur-[100px] pointer-events-none animate-pulse-glow"
+        className="absolute w-[360px] h-[360px] rounded-full bg-amber-200/35 blur-[95px] pointer-events-none animate-pulse-glow"
         style={{
-          top: '50%',
-          right: '35%',
+          top: '45%',
+          right: '30%',
         }}
       />
 
-      {/* Main Glassmorphic Container with Subtle Tilt Effect */}
+      {/* Main Container with 3D Tilt */}
       <div
         className="w-full max-w-md relative z-10 transition-transform duration-300 ease-out"
         style={{
-          transform: `perspective(1000px) rotateY(${mousePos.x * 6}deg) rotateX(${mousePos.y * -6}deg)`,
+          transform: `perspective(1000px) rotateY(${mousePos.x * 4}deg) rotateX(${mousePos.y * -4}deg)`,
         }}
       >
         {/* Top Status Pill */}
-        <div className="flex justify-center mb-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/80 border border-slate-700/80 text-[11px] font-semibold text-slate-300 shadow-xl backdrop-blur-md">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="tracking-wide">Mock Intelligence Cloud Engine</span>
-            <Sparkles className="w-3 h-3 text-amber-400" />
+        <div className="flex justify-center mb-3">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/90 border border-slate-200/80 text-[11px] font-semibold text-slate-700 shadow-sm backdrop-blur-md">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="tracking-wide">ONEREAL Mock Intelligence Engine</span>
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
           </div>
         </div>
 
-        {/* Brand Header */}
-        <div className="text-center mb-6">
-          <div className="relative inline-block mb-3">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-2xl shadow-blue-500/40 transform hover:scale-105 transition-transform duration-300">
-              <TrendingUp className="w-8 h-8" />
-            </div>
-            <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center text-blue-400 text-[10px] font-bold">
-              B9
-            </div>
-          </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
-            MOCK PERFORMANCE INTELLIGENCE
-          </h1>
-          <p className="text-xs md:text-sm text-slate-400 mt-1.5 font-medium">
-            Basic 9 Examination Analytics & Candidate Diagnostics
-          </p>
+        {/* Mascot Bear Avatar sitting happily on top of the card */}
+        <div className="relative -mb-3 z-20">
+          <BearAvatar
+            isUsernameFocused={isUsernameFocused}
+            isPasswordFocused={isPasswordFocused}
+            showPassword={showPassword}
+            usernameLength={currentUsernameLength}
+            isSubmitting={isLoading}
+          />
         </div>
 
-        {/* Glassmorphism Card */}
-        <div className="relative rounded-3xl p-6 md:p-8 shadow-2xl backdrop-blur-xl bg-slate-900/80 border border-slate-800/80 hover:border-slate-700/80 transition-colors">
-          {/* Animated Tab Switcher */}
-          <div className="relative flex bg-slate-950/80 rounded-2xl p-1 mb-6 border border-slate-800">
+        {/* Light Glassmorphism Login Card */}
+        <div className="relative rounded-3xl p-6 md:p-8 shadow-2xl shadow-indigo-100/70 backdrop-blur-xl bg-white/95 border border-slate-200/90 ring-1 ring-slate-100">
+          {/* Brand Header */}
+          <div className="text-center mb-6">
+            <div className="relative inline-block mb-2">
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg transform hover:scale-105 transition-transform duration-300"
+                style={{ backgroundColor: themeColor }}
+              >
+                <TrendingUp className="w-6 h-6" />
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-md bg-white border border-slate-200 flex items-center justify-center text-slate-800 text-[9px] font-black shadow-xs">
+                B9
+              </div>
+            </div>
+            <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+              MOCK PERFORMANCE INTELLIGENCE
+            </h1>
+            <p className="text-xs text-slate-500 mt-1 font-medium">
+              Basic 9 Examination Diagnostics & Performance Analytics
+            </p>
+          </div>
+
+          {/* Clean Segmented Tab Switcher */}
+          <div className="relative flex bg-slate-100/90 rounded-2xl p-1 mb-5 border border-slate-200/60">
             <button
               type="button"
               onClick={() => {
                 setLoginType('staff');
                 setError(null);
               }}
-              className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 ${
+              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 ${
                 loginType === 'staff'
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 font-extrabold'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'
+                  ? 'bg-white text-slate-900 shadow-sm font-extrabold'
+                  : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'
               }`}
             >
               <School className="w-3.5 h-3.5" />
@@ -259,10 +162,10 @@ export const LoginPage: React.FC = () => {
                 setLoginType('student');
                 setError(null);
               }}
-              className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 ${
+              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 ${
                 loginType === 'student'
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 font-extrabold'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'
+                  ? 'bg-white text-slate-900 shadow-sm font-extrabold'
+                  : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'
               }`}
             >
               <GraduationCap className="w-3.5 h-3.5" />
@@ -271,8 +174,8 @@ export const LoginPage: React.FC = () => {
           </div>
 
           {error && (
-            <div className="mb-5 p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium flex items-center gap-2.5 animate-fadeIn">
-              <ShieldCheck className="w-4 h-4 shrink-0 text-rose-400" />
+            <div className="mb-5 p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium flex items-center gap-2.5 animate-fadeIn">
+              <ShieldCheck className="w-4 h-4 shrink-0 text-rose-500" />
               <span className="leading-snug">{error}</span>
             </div>
           )}
@@ -281,40 +184,50 @@ export const LoginPage: React.FC = () => {
             {loginType === 'staff' ? (
               <>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                     Username or Email
                   </label>
                   <div className="relative group">
-                    <UserIcon className="w-4 h-4 text-slate-500 group-focus-within:text-blue-400 absolute left-3.5 top-3.5 transition-colors" />
+                    <UserIcon className="w-4 h-4 text-slate-400 group-focus-within:text-indigo-600 absolute left-3.5 top-3.5 transition-colors" />
                     <input
                       type="text"
                       required
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
+                      onFocus={() => {
+                        setIsUsernameFocused(true);
+                        setIsPasswordFocused(false);
+                      }}
+                      onBlur={() => setIsUsernameFocused(false)}
                       placeholder="e.g. admin or teacher.evans"
-                      className="w-full pl-10 pr-4 py-2.5 bg-slate-950/70 border border-slate-800 rounded-xl text-xs md:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs md:text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-3 focus:ring-indigo-100 focus:border-indigo-500 transition-all shadow-inner/5"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                     Password
                   </label>
                   <div className="relative group">
-                    <Lock className="w-4 h-4 text-slate-500 group-focus-within:text-blue-400 absolute left-3.5 top-3.5 transition-colors" />
+                    <Lock className="w-4 h-4 text-slate-400 group-focus-within:text-indigo-600 absolute left-3.5 top-3.5 transition-colors" />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      onFocus={() => {
+                        setIsPasswordFocused(true);
+                        setIsUsernameFocused(false);
+                      }}
+                      onBlur={() => setIsPasswordFocused(false)}
                       placeholder="Enter password"
-                      className="w-full pl-10 pr-10 py-2.5 bg-slate-950/70 border border-slate-800 rounded-xl text-xs md:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs md:text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-3 focus:ring-indigo-100 focus:border-indigo-500 transition-all shadow-inner/5"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-slate-400 hover:text-slate-200 transition-colors"
+                      className="absolute right-3 top-3 text-slate-400 hover:text-slate-700 transition-colors"
                       tabIndex={-1}
                       title={showPassword ? 'Hide password' : 'Show password'}
                     >
@@ -326,40 +239,50 @@ export const LoginPage: React.FC = () => {
             ) : (
               <>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                     Candidate Index Number
                   </label>
                   <div className="relative group">
-                    <UserIcon className="w-4 h-4 text-slate-500 group-focus-within:text-blue-400 absolute left-3.5 top-3.5 transition-colors" />
+                    <UserIcon className="w-4 h-4 text-slate-400 group-focus-within:text-indigo-600 absolute left-3.5 top-3.5 transition-colors" />
                     <input
                       type="text"
                       required
                       value={indexNumber}
                       onChange={(e) => setIndexNumber(e.target.value)}
+                      onFocus={() => {
+                        setIsUsernameFocused(true);
+                        setIsPasswordFocused(false);
+                      }}
+                      onBlur={() => setIsUsernameFocused(false)}
                       placeholder="e.g. 010203001"
-                      className="w-full pl-10 pr-4 py-2.5 bg-slate-950/70 border border-slate-800 rounded-xl text-xs md:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs md:text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-3 focus:ring-indigo-100 focus:border-indigo-500 transition-all shadow-inner/5"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                     Student ID Code
                   </label>
                   <div className="relative group">
-                    <Lock className="w-4 h-4 text-slate-500 group-focus-within:text-blue-400 absolute left-3.5 top-3.5 transition-colors" />
+                    <Lock className="w-4 h-4 text-slate-400 group-focus-within:text-indigo-600 absolute left-3.5 top-3.5 transition-colors" />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
                       value={studentId}
                       onChange={(e) => setStudentId(e.target.value)}
+                      onFocus={() => {
+                        setIsPasswordFocused(true);
+                        setIsUsernameFocused(false);
+                      }}
+                      onBlur={() => setIsPasswordFocused(false)}
                       placeholder="e.g. ACH/B9/001"
-                      className="w-full pl-10 pr-10 py-2.5 bg-slate-950/70 border border-slate-800 rounded-xl text-xs md:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs md:text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-3 focus:ring-indigo-100 focus:border-indigo-500 transition-all shadow-inner/5"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-slate-400 hover:text-slate-200 transition-colors"
+                      className="absolute right-3 top-3 text-slate-400 hover:text-slate-700 transition-colors"
                       tabIndex={-1}
                       title={showPassword ? 'Hide password' : 'Show password'}
                     >
@@ -373,7 +296,8 @@ export const LoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full mt-2 py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs md:text-sm rounded-xl shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50 transition-all flex items-center justify-center gap-2 group disabled:opacity-50 active:scale-[0.98]"
+              style={{ backgroundColor: themeColor }}
+              className="w-full mt-2 py-3 px-4 hover:opacity-90 text-white font-bold text-xs md:text-sm rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 group disabled:opacity-50 active:scale-[0.98]"
             >
               <span>{isLoading ? 'Authenticating...' : loginType === 'staff' ? 'Sign In to Staff Portal' : 'Access Student Results'}</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -381,12 +305,12 @@ export const LoginPage: React.FC = () => {
           </form>
         </div>
 
-        {/* Footer Notes */}
-        <div className="text-center mt-6 space-y-1">
-          <p className="text-[11px] text-slate-400">
+        {/* Friendly Footer */}
+        <div className="text-center mt-5 space-y-1">
+          <p className="text-[11px] text-slate-500 font-medium">
             Achimota Model BECE Candidate Performance & Diagnostic Portal
           </p>
-          <p className="text-[10px] text-slate-500">
+          <p className="text-[10px] text-slate-400">
             Powered by Mock Intelligence Core • Secured with Supabase Auth
           </p>
         </div>
@@ -394,4 +318,3 @@ export const LoginPage: React.FC = () => {
     </div>
   );
 };
-
