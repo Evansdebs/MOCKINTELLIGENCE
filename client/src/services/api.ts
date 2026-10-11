@@ -170,6 +170,7 @@ export const api = {
   updateUser: (id: string, data: any) => request<any>(`/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   updateUserSubjects: (id: string, subjectIds: string[]) => request<any>(`/users/${id}/subjects`, { method: 'PUT', body: JSON.stringify({ subjectIds }) }),
   resetUserPassword: (id: string, newPassword: string) => request<any>(`/users/${id}/password`, { method: 'PUT', body: JSON.stringify({ newPassword }) }),
+  inviteStaffToAuth: (id: string) => request<any>(`/users/${id}/invite-auth`, { method: 'POST' }),
 
   // System Backup & Restore
   exportLocalBackup: () => request<any>('/backup/export'),

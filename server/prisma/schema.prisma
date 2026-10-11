@@ -12,12 +12,13 @@ model User {
   id           String    @id @default(uuid())
   username     String    @unique
   email        String    @unique
-  passwordHash String
+  passwordHash String?
   name         String
   role         String    @default("TEACHER") // ADMIN, TEACHER, MANAGEMENT
   status       String    @default("Active")
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+  authUserId   String?   @unique @db.Uuid
   subjects     TeacherSubject[]
   classes      ClassRoom[]
 }

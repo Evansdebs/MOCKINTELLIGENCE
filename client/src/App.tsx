@@ -30,7 +30,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white text-xs font-mono">
-        Authenticating session...
+        ONEREAL MOCKINTEL LOADING...
       </div>
     );
   }

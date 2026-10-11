@@ -101,6 +101,7 @@ router.get('/users', authenticate, authorize(['ADMIN']), userController.getUsers
 router.post('/users', authenticate, authorize(['ADMIN']), userController.createUser);
 router.put('/users/:id', authenticate, authorize(['ADMIN']), userController.updateUser);
 router.put('/users/:id/password', authenticate, authorize(['ADMIN']), userController.resetUserPassword);
+router.post('/users/:id/invite-auth', authenticate, authorize(['ADMIN']), userController.inviteStaffToAuth);
 // ==================== SYSTEM BACKUP & RESTORE ====================
 router.get('/backup/export', authenticate, authorize(['ADMIN']), backupController.exportLocalBackup);
 router.post('/backup/cloud', authenticate, authorize(['ADMIN']), backupController.createCloudBackup);

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
 import { api } from '../services/api';
+import { supabase } from '../services/supabase';
 
 interface AuthContextType {
   user: User | null;
@@ -44,6 +45,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [token]);
 
   const login = async (credentials: { username: string; password: string }) => {
+    // 1. Attempt Supabase Auth login if input looks like an email or Supabase is configured
+    try {
+      const { data: supaData, error: supaError } = await supabase.auth.signInWithPassword({
+        email: credentials.username.trim(),
+        password: credentials.password,
+      });
+
+      if (!supaError && supaData?.session?.access_token) {
+        const supaToken = supaData.session.access_token;
+        localStorage.setItem('mock_intel_token', supaToken);
+        setToken(supaToken);
+
+        const profileRes = await api.me();
+        setUser(profileRes.user);
+        localStorage.setItem('mock_intel_user', JSON.stringify(profileRes.user));
+        return;
+      }
+    } catch (e) {
+      // Proceed to legacy login fallback if Supabase Auth login fails or user entered a username
+    }
+
+    // 2. Legacy login fallback (prior to global sunset date)
     const res = await api.login(credentials);
     setToken(res.token);
     setUser(res.user);
@@ -60,6 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    supabase.auth.signOut().catch(() => {});
     setToken(null);
     setUser(null);
     localStorage.removeItem('mock_intel_token');

@@ -5,11 +5,20 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../prisma';
 import { AuthRequest, logAudit } from '../middleware/auth';
 import { UserTokenPayload } from '../types';
+import { isLegacyAuthAllowed } from '../config/authConfig';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-mock-intelligence-jwt-key-2026-ghana';
 
 export async function login(req: Request, res: Response): Promise<void> {
   try {
+    // Symmetrical shutdown: if legacy sunset has passed, refuse to issue legacy staff tokens
+    if (!isLegacyAuthAllowed()) {
+      res.status(410).json({
+        error: 'Legacy staff password login is permanently discontinued. Please sign in with your Supabase account.',
+      });
+      return;
+    }
+
     const { username, password } = req.body;
     if (!username || !password) {
       res.status(400).json({ error: 'Username/Email and password are required.' });
@@ -30,6 +39,14 @@ export async function login(req: Request, res: Response): Promise<void> {
 
     if (!user) {
       res.status(401).json({ error: 'Invalid credentials. Please verify your username and password.' });
+      return;
+    }
+
+    // Explicitly reject accounts with null passwordHash BEFORE bcrypt.compare
+    if (!user.passwordHash) {
+      res.status(401).json({
+        error: 'This account is managed through Supabase Authentication. Please sign in with your Supabase credentials.',
+      });
       return;
     }
 
