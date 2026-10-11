@@ -20,116 +20,105 @@ export const AppLogo: React.FC<AppLogoProps> = ({
   const sizeMap = {
     sm: 'w-8 h-8 rounded-lg text-xs',
     md: 'w-10 h-10 rounded-xl text-sm',
-    lg: 'w-13 h-13 rounded-2xl text-base',
+    lg: 'w-12 h-12 rounded-2xl text-base',
     xl: 'w-16 h-16 rounded-2xl text-lg',
   };
 
   const svgDimensions = {
-    sm: { width: 32, height: 32 },
-    md: { width: 40, height: 40 },
-    lg: { width: 52, height: 52 },
-    xl: { width: 64, height: 64 },
+    sm: 32,
+    md: 40,
+    lg: 48,
+    xl: 64,
   };
 
   const dim = svgDimensions[size];
 
   return (
     <div className={`inline-flex items-center gap-3 ${className}`}>
-      {/* Designed "OR" Monogram Badge */}
+      {/* Modern Designed "OR" Monogram Badge */}
       <div
-        className={`relative flex items-center justify-center shrink-0 shadow-lg select-none transition-transform duration-300 hover:scale-105 ${sizeMap[size]}`}
+        className={`relative flex items-center justify-center shrink-0 select-none transition-transform duration-300 hover:scale-105 shadow-md ${sizeMap[size]}`}
         style={{
-          background: `linear-gradient(135deg, ${themeColor || '#2563EB'} 0%, #4F46E5 50%, #7C3AED 100%)`,
-          boxShadow: `0 8px 20px -4px ${themeColor ? themeColor + '55' : 'rgba(79, 70, 229, 0.35)'}`,
+          background: themeColor 
+            ? `linear-gradient(135deg, ${themeColor} 0%, #1D4ED8 100%)`
+            : 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 60%, #1E40AF 100%)',
+          boxShadow: '0 4px 14px -2px rgba(37, 99, 235, 0.35)',
         }}
       >
-        {/* Subtle glossy glass highlight on top edge */}
-        <div className="absolute inset-x-0 top-0 h-1/2 bg-white/20 rounded-t-[inherit] pointer-events-none" />
+        {/* Subtle glossy glass highlight on top */}
+        <div className="absolute inset-x-0 top-0 h-1/2 bg-white/15 rounded-t-[inherit] pointer-events-none" />
 
-        {/* Vector Designed "OR" Monogram */}
+        {/* Clean, Bold, Geometric "OR" Vector Emblem */}
         <svg
           viewBox="0 0 100 100"
-          width={dim.width * 0.72}
-          height={dim.height * 0.72}
+          width={dim * 0.75}
+          height={dim * 0.75}
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className="drop-shadow-sm overflow-visible"
+          className="overflow-visible"
         >
+          {/* Subtle drop shadow */}
           <defs>
-            {/* Soft inner glow gradient */}
-            <linearGradient id="orGradO" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#FFFFFF" />
-              <stop offset="100%" stopColor="#E0E7FF" />
-            </linearGradient>
-            <linearGradient id="orGradR" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#FFFFFF" />
-              <stop offset="100%" stopColor="#C7D2FE" />
-            </linearGradient>
-            <filter id="shadowFilter" x="-10%" y="-10%" width="130%" height="130%">
-              <feDropShadow dx="1" dy="2" stdDeviation="1.5" floodColor="#1E1B4B" floodOpacity="0.4" />
+            <filter id="cleanShadow" x="-10%" y="-10%" width="120%" height="120%">
+              <feDropShadow dx="0" dy="1.5" stdDeviation="1.2" floodColor="#0F172A" floodOpacity="0.25" />
             </filter>
+            <linearGradient id="whiteGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#FFFFFF" />
+              <stop offset="100%" stopColor="#F1F5F9" />
+            </linearGradient>
           </defs>
 
-          {/* Letter "O" - Bold Modern Geometric Ring */}
+          {/* Letter "O": Thick, clean modern geometric ring */}
           <path
-            d="M 32,20 
-               C 17,20 8,32 8,50 
-               C 8,68 17,80 32,80 
-               C 42,80 49,74 53,65 
-               L 43,60 
-               C 40,66 36,70 32,70 
-               C 23,70 18,61 18,50 
-               C 18,39 23,30 32,30 
-               C 39,30 43,35 46,42 
-               L 55,36 
-               C 50,26 43,20 32,20 Z"
-            fill="url(#orGradO)"
-            filter="url(#shadowFilter)"
+            d="M 31,23 
+               C 17,23 7,34 7,50 
+               C 7,66 17,77 31,77 
+               C 45,77 55,66 55,50 
+               C 55,34 45,23 31,23 Z 
+               M 31,35 
+               C 39,35 44,41 44,50 
+               C 44,59 39,65 31,65 
+               C 23,65 18,59 18,50 
+               C 18,41 23,35 31,35 Z"
+            fill="url(#whiteGrad)"
+            filter="url(#cleanShadow)"
           />
 
-          {/* Letter "R" - Sleek interlocked letter with dynamic diagonal kicker */}
+          {/* Letter "R": Confident modern architectural typography */}
           {/* Vertical Stem */}
           <path
-            d="M 45,21 
-               L 55,21 
-               L 55,79 
-               L 45,79 Z"
-            fill="url(#orGradR)"
-            filter="url(#shadowFilter)"
+            d="M 52,23 L 63,23 L 63,77 L 52,77 Z"
+            fill="url(#whiteGrad)"
+            filter="url(#cleanShadow)"
           />
 
-          {/* "R" Loop / Bow */}
+          {/* Loop / Upper Bowl */}
           <path
-            d="M 54,21 
-               L 72,21 
-               C 84,21 91,28 91,38 
-               C 91,48 83,55 71,55 
-               L 54,55 Z 
-               M 55,31 
-               L 70,31 
-               C 77,31 80,34 80,38 
-               C 80,42 77,45 70,45 
-               L 55,45 Z"
-            fill="url(#orGradR)"
-            filter="url(#shadowFilter)"
+            d="M 63,23 
+               L 78,23 
+               C 88,23 94,29 94,38 
+               C 94,47 88,53 78,53 
+               L 63,53 Z 
+               M 63,34 
+               L 77,34 
+               C 81,34 83,36 83,38 
+               C 83,40 81,42 77,42 
+               L 63,42 Z"
+            fill="url(#whiteGrad)"
+            filter="url(#cleanShadow)"
           />
 
-          {/* "R" Dynamic Forward Kicker / Leg */}
+          {/* Angular Dynamic Leg / Kick */}
           <path
-            d="M 68,52 
-               L 88,79 
-               L 77,79 
-               L 59,54 
-               Z"
-            fill="#FFFFFF"
-            filter="url(#shadowFilter)"
+            d="M 73,50 
+               L 93,77 
+               L 81,77 
+               L 64,52 Z"
+            fill="url(#whiteGrad)"
+            filter="url(#cleanShadow)"
           />
-
-          {/* Little spark dot / accent on the R kick */}
-          <circle cx="89" cy="74" r="2.2" fill="#FDE047" />
         </svg>
 
-        {/* Mini Sub-tag badge */}
         <span className="sr-only">ONEREAL OR Logo</span>
       </div>
 
@@ -139,11 +128,11 @@ export const AppLogo: React.FC<AppLogoProps> = ({
             <span className={`font-black tracking-tight text-base ${textColor}`}>
               ONEREAL
             </span>
-            <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-amber-400 text-slate-900 shadow-xs">
+            <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-blue-600 text-white shadow-xs">
               B9
             </span>
           </div>
-          <p className="text-[10px] text-blue-400/90 font-medium tracking-wide">
+          <p className="text-[10px] text-blue-400 font-medium tracking-wide">
             Mock Performance Intelligence
           </p>
         </div>

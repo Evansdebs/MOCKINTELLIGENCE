@@ -127,8 +127,8 @@ export const LoginPage: React.FC = () => {
                 B9
               </div>
             </div>
-            <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
-              <span className="text-indigo-600">ONEREAL</span> MOCK PERFORMANCE INTELLIGENCE
+            <h1 className="text-xl md:text-2xl font-black text-blue-600 tracking-tight">
+              ONEREAL MOCK PERFORMANCE INTELLIGENCE
             </h1>
             <p className="text-xs text-slate-500 mt-1 font-medium">
               Basic 9 Examination Diagnostics & Performance Analytics
