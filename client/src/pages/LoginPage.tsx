@@ -12,8 +12,8 @@ export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [loginType, setLoginType] = useState<'staff' | 'student'>('staff');
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('Admin@123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [indexNumber, setIndexNumber] = useState('');
   const [studentId, setStudentId] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -118,7 +118,7 @@ export const LoginPage: React.FC = () => {
         </div>
 
         {/* Light Glassmorphism Login Card */}
-        <div className="relative rounded-3xl p-6 md:p-8 shadow-2xl shadow-indigo-100/70 backdrop-blur-xl bg-white/95 border border-slate-200/90 ring-1 ring-slate-100">
+        <div className="relative rounded-3xl p-6 md:p-8 shadow-2xl shadow-indigo-100/70 backdrop-blur-xl bg-blue-50/95 border border-slate-200/90 ring-1 ring-slate-100">
           {/* Brand Header */}
           <div className="text-center mb-6">
             <div className="relative inline-block mb-3">
