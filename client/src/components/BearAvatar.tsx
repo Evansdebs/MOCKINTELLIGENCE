@@ -6,6 +6,7 @@ interface BearAvatarProps {
   showPassword?: boolean;
   usernameLength?: number;
   isSubmitting?: boolean;
+  className?: string;
 }
 
 export const BearAvatar: React.FC<BearAvatarProps> = ({
@@ -14,6 +15,7 @@ export const BearAvatar: React.FC<BearAvatarProps> = ({
   showPassword = false,
   usernameLength = 0,
   isSubmitting = false,
+  className = 'w-36 h-30',
 }) => {
   const [blink, setBlink] = useState(false);
 
@@ -37,7 +39,7 @@ export const BearAvatar: React.FC<BearAvatarProps> = ({
   const isSmiling = isUsernameFocused || usernameLength > 0;
 
   return (
-    <div className="relative w-44 h-36 mx-auto flex items-end justify-center select-none pointer-events-none">
+    <div className={`relative ${className} mx-auto flex items-end justify-center select-none pointer-events-none`}>
       <svg
         viewBox="0 0 200 170"
         className="w-full h-full overflow-visible drop-shadow-md"

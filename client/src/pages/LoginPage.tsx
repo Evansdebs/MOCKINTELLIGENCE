@@ -107,13 +107,14 @@ export const LoginPage: React.FC = () => {
         </div>
 
         {/* Mascot Bear Avatar sitting happily on top of the card */}
-        <div className="relative -mb-3 z-20">
+        <div className="relative -mb-2.5 z-20">
           <BearAvatar
             isUsernameFocused={isUsernameFocused}
             isPasswordFocused={isPasswordFocused}
             showPassword={showPassword}
             usernameLength={currentUsernameLength}
             isSubmitting={isLoading}
+            className="w-32 h-26"
           />
         </div>
 
@@ -128,10 +129,10 @@ export const LoginPage: React.FC = () => {
           {/* Card Body */}
           <div className="relative rounded-3xl p-6 md:p-8 shadow-2xl shadow-indigo-100/70 backdrop-blur-xl bg-blue-50/95 border border-white/70">
           {/* Brand Header */}
-          <div className="text-center mb-6">
-            <div className="relative inline-block mb-3">
-              <AppLogo size="xl" />
-              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-md bg-white border border-slate-200 flex items-center justify-center text-slate-800 text-[9px] font-black shadow-xs">
+          <div className="text-center mb-5">
+            <div className="relative inline-block mb-2.5">
+              <AppLogo size="lg" />
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-md bg-white border border-slate-200 flex items-center justify-center text-slate-800 text-[8px] font-black shadow-xs">
                 B9
               </div>
             </div>
