@@ -385,8 +385,6 @@ export async function commitStudentImport(req: AuthRequest, res: Response): Prom
       return;
     }
 
-    let importedCount = 0;
-    
     const existingClasses = await prisma.classRoom.findMany();
     const classMap = new Map(existingClasses.map(c => [c.name.toLowerCase(), c.id]));
 
