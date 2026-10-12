@@ -176,7 +176,10 @@ export async function batchSaveScores(req: AuthRequest, res: Response): Promise<
     const validationErrors: string[] = [];
     const savedScores: any[] = [];
 
-    // Process each score entry
+    // Prepare tasks for batch parallel execution
+    const deleteTasks: { studentId: string; examinationId: string; subjectId: string }[] = [];
+    const upsertTasks: any[] = [];
+
     for (let i = 0; i < scores.length; i++) {
       const item = scores[i];
       const { studentId, subjectId, rawScore } = item;
@@ -191,9 +194,7 @@ export async function batchSaveScores(req: AuthRequest, res: Response): Promise<
 
       // Handle null/empty (absent or not taken)
       if (rawScore === null || rawScore === undefined || rawScore === '') {
-        const deleted = await prisma.score.deleteMany({
-          where: { studentId, examinationId, subjectId },
-        });
+        deleteTasks.push({ studentId, examinationId, subjectId });
         continue;
       }
 
@@ -218,8 +219,7 @@ export async function batchSaveScores(req: AuthRequest, res: Response): Promise<
       // Calculate grade and percentage
       const gradeResult = calculateGradeForScore(numericScore, maxScore, gradeScales as any);
 
-      // Upsert into database
-      const upserted = await prisma.score.upsert({
+      upsertTasks.push({
         where: {
           studentId_examinationId_subjectId: {
             studentId,
@@ -247,8 +247,20 @@ export async function batchSaveScores(req: AuthRequest, res: Response): Promise<
           isVerified: true,
         },
       });
+    }
 
-      savedScores.push(upserted);
+    // Execute deletes in parallel batches (chunk size 25)
+    const CHUNK_SIZE = 25;
+    for (let i = 0; i < deleteTasks.length; i += CHUNK_SIZE) {
+      const chunk = deleteTasks.slice(i, i + CHUNK_SIZE);
+      await Promise.all(chunk.map(d => prisma.score.deleteMany({ where: d })));
+    }
+
+    // Execute upserts in parallel batches (chunk size 25)
+    for (let i = 0; i < upsertTasks.length; i += CHUNK_SIZE) {
+      const chunk = upsertTasks.slice(i, i + CHUNK_SIZE);
+      const results = await Promise.all(chunk.map(u => prisma.score.upsert(u)));
+      savedScores.push(...results);
     }
 
     if (savedScores.length > 0) {
@@ -455,7 +467,7 @@ export async function commitScoreImport(req: AuthRequest, res: Response): Promis
     const gradeScales = await prisma.gradeScale.findMany({ orderBy: { order: 'asc' } });
     const maxScore = subject.maxScore || 100;
 
-    let importedCount = 0;
+    const importTasks: any[] = [];
     for (const rec of records) {
       if (!rec.studentId || rec.score === null || rec.score === undefined) continue;
 
@@ -464,7 +476,7 @@ export async function commitScoreImport(req: AuthRequest, res: Response): Promis
 
       const gradeInfo = calculateGradeForScore(scoreNum, maxScore, gradeScales as any);
 
-      await prisma.score.upsert({
+      importTasks.push({
         where: {
           studentId_examinationId_subjectId: {
             studentId: rec.studentId,
@@ -492,8 +504,14 @@ export async function commitScoreImport(req: AuthRequest, res: Response): Promis
           isVerified: true,
         },
       });
+    }
 
-      importedCount++;
+    let importedCount = 0;
+    const CHUNK_SIZE = 25;
+    for (let i = 0; i < importTasks.length; i += CHUNK_SIZE) {
+      const chunk = importTasks.slice(i, i + CHUNK_SIZE);
+      const res = await Promise.all(chunk.map(task => prisma.score.upsert(task)));
+      importedCount += res.length;
     }
 
     await logAudit({

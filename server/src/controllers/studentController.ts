@@ -390,41 +390,40 @@ export async function commitStudentImport(req: AuthRequest, res: Response): Prom
     const existingClasses = await prisma.classRoom.findMany();
     const classMap = new Map(existingClasses.map(c => [c.name.toLowerCase(), c.id]));
 
+    // Pre-create any missing classes first
     for (const st of students) {
-      try {
-        const className = String(st.class || 'Basic 9').trim();
-        const classNameKey = className.toLowerCase();
-        
-        let classId = classMap.get(classNameKey);
-        
-        if (!classId) {
-          const newClass = await prisma.classRoom.create({
-            data: { name: className }
-          });
-          classId = newClass.id;
-          classMap.set(classNameKey, classId);
-        }
-
-        await prisma.student.create({
-          data: {
-            studentId: String(st.studentId).trim(),
-            indexNumber: String(st.indexNumber).trim(),
-            firstName: String(st.firstName).trim(),
-            middleName: st.middleName ? String(st.middleName).trim() : null,
-            lastName: String(st.lastName).trim(),
-            fullName: st.fullName || [st.firstName, st.middleName, st.lastName].filter(Boolean).join(' '),
-            gender: st.gender || 'Male',
-            classId: classId,
-            house: st.house || null,
-            status: 'Active',
-            pin: Math.floor(1000 + Math.random() * 9000).toString(),
-          },
-        });
-        importedCount++;
-      } catch (e) {
-        console.error("Error importing student:", e);
-        // Skip duplicate if concurrently created
+      const className = String(st.class || 'Basic 9').trim();
+      const classNameKey = className.toLowerCase();
+      if (!classMap.has(classNameKey)) {
+        const newClass = await prisma.classRoom.create({ data: { name: className } });
+        classMap.set(classNameKey, newClass.id);
       }
+    }
+
+    const studentTasks = students.map(st => {
+      const className = String(st.class || 'Basic 9').trim();
+      const classId = classMap.get(className.toLowerCase());
+      return {
+        studentId: String(st.studentId).trim(),
+        indexNumber: String(st.indexNumber).trim(),
+        firstName: String(st.firstName).trim(),
+        middleName: st.middleName ? String(st.middleName).trim() : null,
+        lastName: String(st.lastName).trim(),
+        fullName: st.fullName || [st.firstName, st.middleName, st.lastName].filter(Boolean).join(' '),
+        gender: st.gender || 'Male',
+        classId: classId,
+        house: st.house || null,
+        status: 'Active',
+        pin: Math.floor(1000 + Math.random() * 9000).toString(),
+      };
+    });
+
+    let importedCount = 0;
+    const CHUNK_SIZE = 20;
+    for (let i = 0; i < studentTasks.length; i += CHUNK_SIZE) {
+      const chunk = studentTasks.slice(i, i + CHUNK_SIZE);
+      const settled = await Promise.allSettled(chunk.map(data => prisma.student.create({ data })));
+      importedCount += settled.filter(s => s.status === 'fulfilled').length;
     }
 
     await logAudit({

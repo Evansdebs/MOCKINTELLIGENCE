@@ -12,16 +12,11 @@ const getApiBase = (): string => {
 const API_BASE = getApiBase();
 
 // In-memory cache for fast UI clicks and deduplication
-interface CacheEntry {
-  data: any;
-  expiresAt: number;
-}
-const requestCache = new Map<string, CacheEntry>();
+// In-flight request deduplication map to prevent multiple identical concurrent requests
 const inFlightRequests = new Map<string, Promise<any>>();
-const CACHE_TTL_MS = 20000; // 20 seconds cache for repeated navigation & clicks
 
 export function clearApiCache() {
-  requestCache.clear();
+  inFlightRequests.clear();
 }
 
 export async function request<T>(
@@ -30,22 +25,11 @@ export async function request<T>(
 ): Promise<T> {
   const method = (options.method || 'GET').toUpperCase();
   const token = localStorage.getItem('mock_intel_token');
-  const cacheKey = `${method}:${endpoint}:${token || ''}`;
+  const requestKey = `${method}:${endpoint}:${token || ''}`;
 
-  // If this is a mutation (POST/PUT/DELETE), invalidate cached GET data immediately
-  if (method !== 'GET') {
-    requestCache.clear();
-  } else {
-    // Check in-memory cache for instant response
-    const cached = requestCache.get(cacheKey);
-    if (cached && cached.expiresAt > Date.now()) {
-      return cached.data as T;
-    }
-
-    // Check if identical request is currently in-flight to deduplicate network calls
-    if (inFlightRequests.has(cacheKey)) {
-      return inFlightRequests.get(cacheKey) as Promise<T>;
-    }
+  // If a request for this exact endpoint is currently in-flight, reuse it
+  if (method === 'GET' && inFlightRequests.has(requestKey)) {
+    return inFlightRequests.get(requestKey) as Promise<T>;
   }
 
   const headers: Record<string, string> = {
@@ -70,7 +54,7 @@ export async function request<T>(
       if (response.status === 401) {
         localStorage.removeItem('mock_intel_token');
         localStorage.removeItem('mock_intel_user');
-        requestCache.clear();
+        inFlightRequests.clear();
         if (!window.location.pathname.includes('/login')) {
           window.location.href = '/login';
         }
@@ -83,24 +67,14 @@ export async function request<T>(
         throw new Error(data?.error || `Request failed with status ${response.status}`);
       }
 
-      // Cache successful GET responses
-      if (method === 'GET') {
-        requestCache.set(cacheKey, {
-          data,
-          expiresAt: Date.now() + CACHE_TTL_MS,
-        });
-      }
-
       return data as T;
     } finally {
-      if (method === 'GET') {
-        inFlightRequests.delete(cacheKey);
-      }
+      inFlightRequests.delete(requestKey);
     }
   })();
 
   if (method === 'GET') {
-    inFlightRequests.set(cacheKey, fetchPromise);
+    inFlightRequests.set(requestKey, fetchPromise);
   }
 
   return fetchPromise;
