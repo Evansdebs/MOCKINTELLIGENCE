@@ -146,7 +146,11 @@ export const ExaminationsPage: React.FC = () => {
       if (selectedSubjectIds.length === 0 && subRes.subjects) {
         setSelectedSubjectIds(subRes.subjects.map((s: Subject) => s.id));
       }
-      loadSnapshots(exams);
+      if (examRes.snapshots) {
+        setSnapshots(examRes.snapshots);
+      } else {
+        loadSnapshots(exams);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -155,16 +159,14 @@ export const ExaminationsPage: React.FC = () => {
   };
 
   const loadSnapshots = async (exams: Examination[]) => {
-    const results: Record<string, ExamSnapshot> = {};
-    await Promise.allSettled(
-      exams.map(async (exam) => {
-        try {
-          const snap = await api.getExamSnapshot(exam.id);
-          results[exam.id] = snap;
-        } catch {}
-      })
-    );
-    setSnapshots(prev => ({ ...prev, ...results }));
+    exams.forEach(async (exam) => {
+      try {
+        const snap = await api.getExamSnapshot(exam.id);
+        if (snap) {
+          setSnapshots(prev => ({ ...prev, [exam.id]: snap }));
+        }
+      } catch {}
+    });
   };
 
   const toggleCompareId = (id: string) => {

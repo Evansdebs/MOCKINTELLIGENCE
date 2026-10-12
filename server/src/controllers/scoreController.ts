@@ -16,32 +16,10 @@ export async function getScoreSheet(req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
-    const exam = await prisma.examination.findUnique({
-      where: { id: String(examinationId) },
-      include: {
-        examinationSubjects: {
-          include: { subject: true },
-        },
-      },
-    });
-
-    if (!exam) {
-      res.status(404).json({ error: 'Examination not found.' });
-      return;
-    }
-
-    const settings = await prisma.schoolSettings.findFirst();
-
     const studentWhere: any = { status: 'Active' };
     if (classFilter && classFilter !== 'all') {
       studentWhere.classId = String(classFilter);
     }
-
-    const students = await prisma.student.findMany({
-      where: studentWhere,
-      include: { classRoom: true },
-      orderBy: [{ classRoom: { name: 'asc' } }, { fullName: 'asc' }],
-    });
 
     const scoreWhere: any = {
       examinationId: String(examinationId),
@@ -51,25 +29,44 @@ export async function getScoreSheet(req: AuthRequest, res: Response): Promise<vo
       scoreWhere.subjectId = String(subjectId);
     }
 
-    const existingScores = await prisma.score.findMany({
-      where: scoreWhere,
-      include: { subject: true },
-    });
+    const [exam, settings, students, existingScores, allActiveSubjects, assignedSubjects] = await Promise.all([
+      prisma.examination.findUnique({
+        where: { id: String(examinationId) },
+        include: {
+          examinationSubjects: {
+            include: { subject: true },
+          },
+        },
+      }),
+      prisma.schoolSettings.findFirst(),
+      prisma.student.findMany({
+        where: studentWhere,
+        include: { classRoom: true },
+        orderBy: [{ classRoom: { name: 'asc' } }, { fullName: 'asc' }],
+      }),
+      prisma.score.findMany({
+        where: scoreWhere,
+        include: { subject: true },
+      }),
+      prisma.subject.findMany({
+        where: { status: 'Active' },
+        orderBy: { order: 'asc' },
+      }),
+      req.user?.role === 'TEACHER'
+        ? prisma.teacherSubject.findMany({ where: { userId: req.user.userId } })
+        : Promise.resolve([]),
+    ]);
 
-    // Subject definitions: Fetch all active subjects to ensure newly added subjects appear
-    const allActiveSubjects = await prisma.subject.findMany({
-      where: { status: 'Active' },
-      orderBy: { order: 'asc' }
-    });
-    
+    if (!exam) {
+      res.status(404).json({ error: 'Examination not found.' });
+      return;
+    }
+
     let subjects = allActiveSubjects
       .filter(s => (subjectId && subjectId !== 'all' ? s.id === subjectId : true));
 
     if (req.user?.role === 'TEACHER') {
-      const assignedSubjects = await prisma.teacherSubject.findMany({
-        where: { userId: req.user.userId }
-      });
-      const assignedIds = new Set(assignedSubjects.map(ts => ts.subjectId));
+      const assignedIds = new Set(assignedSubjects.map((ts: any) => ts.subjectId));
       subjects = subjects.filter(s => assignedIds.has(s.id));
     }
 

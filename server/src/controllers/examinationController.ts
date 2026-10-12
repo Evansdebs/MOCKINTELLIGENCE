@@ -10,22 +10,106 @@ export async function getExaminations(req: AuthRequest, res: Response): Promise<
       where.academicYear = String(academicYear);
     }
 
-    const examinations = await prisma.examination.findMany({
-      where,
-      orderBy: { sequenceOrder: 'asc' },
-      include: {
-        examinationSubjects: {
-          include: {
-            subject: true,
+    const [examinations, settings] = await Promise.all([
+      prisma.examination.findMany({
+        where,
+        orderBy: { sequenceOrder: 'asc' },
+        include: {
+          examinationSubjects: {
+            include: {
+              subject: true,
+            },
+          },
+          _count: {
+            select: { scores: true },
           },
         },
-        _count: {
-          select: { scores: true },
-        },
-      },
-    });
+      }),
+      prisma.schoolSettings.findFirst(),
+    ]);
 
-    res.json({ examinations });
+    const examIds = examinations.map(e => e.id);
+    const passThreshold = settings?.passThreshold ?? 50;
+
+    // Fetch all scores for these examinations in a single fast query
+    const allScores = examIds.length > 0 ? await prisma.score.findMany({
+      where: {
+        examinationId: { in: examIds },
+        percentage: { not: null },
+      },
+      select: {
+        examinationId: true,
+        studentId: true,
+        percentage: true,
+        grade: true,
+      },
+    }) : [];
+
+    // Group scores by examId
+    const scoresByExam: Record<string, typeof allScores> = {};
+    for (const s of allScores) {
+      if (!scoresByExam[s.examinationId]) scoresByExam[s.examinationId] = [];
+      scoresByExam[s.examinationId].push(s);
+    }
+
+    // Build snapshots for all examinations in one pass
+    const snapshots: Record<string, any> = {};
+    for (const exam of examinations) {
+      const examScores = scoresByExam[exam.id] || [];
+      if (examScores.length === 0) {
+        snapshots[exam.id] = {
+          examId: exam.id,
+          examName: exam.name,
+          status: exam.status,
+          sequenceOrder: exam.sequenceOrder,
+          subjectCount: exam.examinationSubjects.length,
+          studentCount: 0,
+          average: null,
+          passRate: null,
+          highestAverage: null,
+          lowestAverage: null,
+          gradeDistribution: {},
+        };
+        continue;
+      }
+
+      const studentTotals: Record<string, { sum: number; count: number }> = {};
+      const gradeDistribution: Record<string, number> = {};
+
+      for (const s of examScores) {
+        if (!studentTotals[s.studentId]) studentTotals[s.studentId] = { sum: 0, count: 0 };
+        studentTotals[s.studentId].sum += s.percentage ?? 0;
+        studentTotals[s.studentId].count++;
+
+        if (s.grade) {
+          gradeDistribution[s.grade] = (gradeDistribution[s.grade] || 0) + 1;
+        }
+      }
+
+      const studentAverages = Object.values(studentTotals).map(
+        t => Math.round((t.sum / t.count) * 100) / 100
+      );
+      const overallAvg = studentAverages.length > 0
+        ? studentAverages.reduce((a, b) => a + b, 0) / studentAverages.length
+        : 0;
+      const passCount = studentAverages.filter(a => a >= passThreshold).length;
+
+      snapshots[exam.id] = {
+        examId: exam.id,
+        examName: exam.name,
+        status: exam.status,
+        sequenceOrder: exam.sequenceOrder,
+        subjectCount: exam.examinationSubjects.length,
+        studentCount: studentAverages.length,
+        average: Math.round(overallAvg * 100) / 100,
+        passRate: studentAverages.length > 0 ? Math.round((passCount / studentAverages.length) * 100 * 10) / 10 : null,
+        highestAverage: studentAverages.length > 0 ? Math.max(...studentAverages) : null,
+        lowestAverage: studentAverages.length > 0 ? Math.min(...studentAverages) : null,
+        gradeDistribution,
+      };
+    }
+
+    res.json({ examinations, snapshots });
   } catch (err) {
     res.status(500).json({ error: 'Failed to retrieve examinations.' });
   }
