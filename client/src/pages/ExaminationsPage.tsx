@@ -130,18 +130,19 @@ export const ExaminationsPage: React.FC = () => {
     if (searchParams.get('new') === 'true') setIsCreateModalOpen(true);
   }, []);
 
-  const loadData = async () => {
+  const loadData = async (silent = false) => {
     try {
-      setLoading(true);
-      const [examRes, subRes, studRes] = await Promise.all([
+      if (!silent) setLoading(true);
+      const [examRes, subRes, classRes] = await Promise.all([
         api.getExaminations(),
         api.getSubjects(),
-        api.getStudents(),
+        api.getClassRooms(),
       ]);
       const exams = examRes.examinations || [];
       setExaminations(exams);
       setSubjects(subRes.subjects || []);
-      if (studRes?.classes) setClassesList(studRes.classes);
+      const classes = Array.isArray(classRes) ? classRes : (classRes?.classes || []);
+      setClassesList(classes);
       if (selectedSubjectIds.length === 0 && subRes.subjects) {
         setSelectedSubjectIds(subRes.subjects.map((s: Subject) => s.id));
       }
@@ -149,7 +150,7 @@ export const ExaminationsPage: React.FC = () => {
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -163,7 +164,7 @@ export const ExaminationsPage: React.FC = () => {
         } catch {}
       })
     );
-    setSnapshots(results);
+    setSnapshots(prev => ({ ...prev, ...results }));
   };
 
   const toggleCompareId = (id: string) => {
@@ -217,7 +218,7 @@ export const ExaminationsPage: React.FC = () => {
       });
       setIsCreateModalOpen(false);
       setFormName(''); setFormDesc(''); setFormStartDate(''); setFormEndDate('');
-      loadData();
+      loadData(true);
     } catch (err: any) {
       setFormError(err.message || 'Failed to create examination.');
     } finally {
@@ -227,53 +228,68 @@ export const ExaminationsPage: React.FC = () => {
 
   const handleCompleteExam = async () => {
     if (!selectedExam) return;
+    const examId = selectedExam.id;
+    // Optimistic UI: update immediately and close modal
+    setExaminations(prev => prev.map(e => e.id === examId ? { ...e, status: 'Completed' } : e));
+    setIsCompleteModalOpen(false);
+    setSelectedExam(null);
     try {
-      setActionLoading(true);
-      await api.completeExamination(selectedExam.id);
-      setIsCompleteModalOpen(false);
-      setSelectedExam(null);
-      loadData();
+      await api.completeExamination(examId);
+      loadData(true);
     } catch (err: any) {
+      // Revert if request failed
+      setExaminations(prev => prev.map(e => e.id === examId ? { ...e, status: selectedExam.status } : e));
       alert(err.message || 'Failed to complete examination.');
-    } finally { setActionLoading(false); }
+    }
   };
 
   const handleLockExam = async () => {
     if (!selectedExam) return;
+    const examId = selectedExam.id;
+    // Optimistic UI: update immediately and close modal
+    setExaminations(prev => prev.map(e => e.id === examId ? { ...e, status: 'Locked' } : e));
+    setIsLockModalOpen(false);
+    setSelectedExam(null);
     try {
-      setActionLoading(true);
-      await api.lockExamination(selectedExam.id);
-      setIsLockModalOpen(false);
-      setSelectedExam(null);
-      loadData();
+      await api.lockExamination(examId);
+      loadData(true);
     } catch (err: any) {
+      // Revert if request failed
+      setExaminations(prev => prev.map(e => e.id === examId ? { ...e, status: selectedExam.status } : e));
       alert(err.message || 'Failed to lock examination.');
-    } finally { setActionLoading(false); }
+    }
   };
 
   const handleUnlockExam = async () => {
     if (!selectedExam) return;
+    const examId = selectedExam.id;
+    const reason = unlockReason;
+    // Optimistic UI: update immediately and close modal
+    setExaminations(prev => prev.map(e => e.id === examId ? { ...e, status: 'Active' } : e));
+    setIsUnlockModalOpen(false);
+    setSelectedExam(null);
+    setUnlockReason('');
     try {
-      setActionLoading(true);
-      await api.unlockExamination(selectedExam.id, unlockReason);
-      setIsUnlockModalOpen(false);
-      setSelectedExam(null);
-      setUnlockReason('');
-      loadData();
+      await api.unlockExamination(examId, reason);
+      loadData(true);
     } catch (err: any) {
+      // Revert if request failed
+      setExaminations(prev => prev.map(e => e.id === examId ? { ...e, status: selectedExam.status } : e));
       alert(err.message || 'Failed to unlock examination.');
-    } finally { setActionLoading(false); }
+    }
   };
 
   const handleDeleteExam = async (exam: Examination) => {
     if (!window.confirm(`Are you sure you want to permanently delete "${exam.name}"? This action cannot be undone and will delete all associated scores.`)) return;
+    // Optimistic UI removal
+    setExaminations(prev => prev.filter(e => e.id !== exam.id));
     try {
-      setActionLoading(true);
       await api.deleteExamination(exam.id);
-      loadData();
+      loadData(true);
     } catch (err: any) {
       alert(err.message || 'Failed to delete examination.');
-    } finally { setActionLoading(false); }
+      loadData(true);
+    }
   };
 
   const toggleSubjectSelect = (subId: string) =>

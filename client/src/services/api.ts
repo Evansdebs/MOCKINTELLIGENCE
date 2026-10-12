@@ -11,11 +11,42 @@ const getApiBase = (): string => {
 
 const API_BASE = getApiBase();
 
+// In-memory cache for fast UI clicks and deduplication
+interface CacheEntry {
+  data: any;
+  expiresAt: number;
+}
+const requestCache = new Map<string, CacheEntry>();
+const inFlightRequests = new Map<string, Promise<any>>();
+const CACHE_TTL_MS = 20000; // 20 seconds cache for repeated navigation & clicks
+
+export function clearApiCache() {
+  requestCache.clear();
+}
+
 export async function request<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
+  const method = (options.method || 'GET').toUpperCase();
   const token = localStorage.getItem('mock_intel_token');
+  const cacheKey = `${method}:${endpoint}:${token || ''}`;
+
+  // If this is a mutation (POST/PUT/DELETE), invalidate cached GET data immediately
+  if (method !== 'GET') {
+    requestCache.clear();
+  } else {
+    // Check in-memory cache for instant response
+    const cached = requestCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.data as T;
+    }
+
+    // Check if identical request is currently in-flight to deduplicate network calls
+    if (inFlightRequests.has(cacheKey)) {
+      return inFlightRequests.get(cacheKey) as Promise<T>;
+    }
+  }
 
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string>),
@@ -29,27 +60,50 @@ export async function request<T>(
     headers['Content-Type'] = 'application/json';
   }
 
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  const fetchPromise = (async () => {
+    try {
+      const response = await fetch(`${API_BASE}${endpoint}`, {
+        ...options,
+        headers,
+      });
 
-  if (response.status === 401) {
-    localStorage.removeItem('mock_intel_token');
-    localStorage.removeItem('mock_intel_user');
-    if (!window.location.pathname.includes('/login')) {
-      window.location.href = '/login';
+      if (response.status === 401) {
+        localStorage.removeItem('mock_intel_token');
+        localStorage.removeItem('mock_intel_user');
+        requestCache.clear();
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = '/login';
+        }
+        throw new Error('Oops!!! Check credentials, refresh and login again');
+      }
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(data?.error || `Request failed with status ${response.status}`);
+      }
+
+      // Cache successful GET responses
+      if (method === 'GET') {
+        requestCache.set(cacheKey, {
+          data,
+          expiresAt: Date.now() + CACHE_TTL_MS,
+        });
+      }
+
+      return data as T;
+    } finally {
+      if (method === 'GET') {
+        inFlightRequests.delete(cacheKey);
+      }
     }
-    throw new Error('Oops!!! Check credentials, refresh and login again');
+  })();
+
+  if (method === 'GET') {
+    inFlightRequests.set(cacheKey, fetchPromise);
   }
 
-  const data = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    throw new Error(data?.error || `Request failed with status ${response.status}`);
-  }
-
-  return data as T;
+  return fetchPromise;
 }
 
 export const api = {
@@ -181,4 +235,6 @@ export const api = {
   downloadCloudBackup: (id: string) => request<any>(`/backup/cloud/${id}/download`),
   deleteCloudBackup: (id: string) => request<any>(`/backup/cloud/${id}`, { method: 'DELETE' }),
   restoreBackup: (snapshot: any) => request<any>('/backup/restore', { method: 'POST', body: JSON.stringify({ snapshot }) }),
+  clearCache: clearApiCache,
 };
+

@@ -15,6 +15,7 @@ export const ClassesPage: React.FC = () => {
   const [teacherId, setTeacherId] = useState('');
   const [teachers, setTeachers] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     loadClasses();
@@ -30,15 +31,15 @@ export const ClassesPage: React.FC = () => {
     }
   };
 
-  const loadClasses = async () => {
+  const loadClasses = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const res = await api.getClassRooms();
       setClasses(Array.isArray(res) ? res : res.classes || []);
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -61,6 +62,7 @@ export const ClassesPage: React.FC = () => {
   const handleSaveClass = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setIsSaving(true);
 
     const payload = {
       name: name.trim(),
@@ -74,9 +76,11 @@ export const ClassesPage: React.FC = () => {
         await api.createClassRoom(payload);
       }
       setIsModalOpen(false);
-      loadClasses();
+      loadClasses(true);
     } catch (err: any) {
       setError(err.message || 'Failed to save class.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -84,12 +88,14 @@ export const ClassesPage: React.FC = () => {
     if (!window.confirm(`Are you sure you want to remove "${name}"?`)) {
       return;
     }
+    // Optimistic removal: removes immediately from list
+    setClasses(prev => prev.filter(c => c.id !== id));
     try {
-      const res = await api.deleteClassRoom(id);
-      alert(res.message || 'Class removed successfully');
-      loadClasses();
+      await api.deleteClassRoom(id);
+      loadClasses(true);
     } catch (err: any) {
       alert(err.message || 'Failed to delete class.');
+      loadClasses(true);
     }
   };
 
@@ -213,9 +219,10 @@ export const ClassesPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-600/30"
+                  disabled={isSaving}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-600/30 flex items-center gap-1.5"
                 >
-                  Save Class
+                  {isSaving ? 'Saving...' : 'Save Class'}
                 </button>
               </div>
             </form>

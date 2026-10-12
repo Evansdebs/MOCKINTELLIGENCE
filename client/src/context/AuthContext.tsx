@@ -45,25 +45,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [token]);
 
   const login = async (credentials: { username: string; password: string }) => {
-    // 1. Attempt Supabase Auth login if input looks like an email or Supabase is configured
-    try {
-      const { data: supaData, error: supaError } = await supabase.auth.signInWithPassword({
-        email: credentials.username.trim(),
-        password: credentials.password,
-      });
+    const trimmedUser = credentials.username.trim();
+    // 1. Attempt Supabase Auth login only if input looks like an email address
+    if (trimmedUser.includes('@')) {
+      try {
+        const { data: supaData, error: supaError } = await supabase.auth.signInWithPassword({
+          email: trimmedUser,
+          password: credentials.password,
+        });
 
-      if (!supaError && supaData?.session?.access_token) {
-        const supaToken = supaData.session.access_token;
-        localStorage.setItem('mock_intel_token', supaToken);
-        setToken(supaToken);
+        if (!supaError && supaData?.session?.access_token) {
+          const supaToken = supaData.session.access_token;
+          localStorage.setItem('mock_intel_token', supaToken);
+          setToken(supaToken);
 
-        const profileRes = await api.me();
-        setUser(profileRes.user);
-        localStorage.setItem('mock_intel_user', JSON.stringify(profileRes.user));
-        return;
+          const profileRes = await api.me();
+          setUser(profileRes.user);
+          localStorage.setItem('mock_intel_user', JSON.stringify(profileRes.user));
+          return;
+        }
+      } catch (e) {
+        // Proceed to backend login fallback if Supabase Auth login fails
       }
-    } catch (e) {
-      // Proceed to legacy login fallback if Supabase Auth login fails or user entered a username
     }
 
     // 2. Legacy login fallback (prior to global sunset date)
