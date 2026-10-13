@@ -35,6 +35,24 @@ import html2canvas from 'html2canvas';
 import { api } from '../services/api';
 import { Student } from '../types';
 
+const TabSkeleton: React.FC<{ title?: string }> = ({ title = 'Loading Analytics...' }) => (
+  <div className="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-4 animate-pulse">
+    <div className="flex items-center justify-between">
+      <div className="space-y-2">
+        <div className="h-4 w-40 bg-slate-200 rounded-full" />
+        <div className="h-6 w-64 bg-slate-200 rounded-xl" />
+      </div>
+      <div className="h-8 w-24 bg-slate-200 rounded-lg" />
+    </div>
+    <div className="h-64 w-full bg-slate-50 border border-dashed border-slate-200 rounded-xl flex items-center justify-center text-xs font-semibold text-slate-400">
+      <div className="flex items-center gap-2">
+        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <span>{title}</span>
+      </div>
+    </div>
+  </div>
+);
+
 export const MockIntelligencePage: React.FC = () => {
   const [searchParams] = useSearchParams();
 
@@ -45,6 +63,7 @@ export const MockIntelligencePage: React.FC = () => {
   const [classFilter, setClassFilter] = useState('all');
   const [classesList, setClassesList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tabLoading, setTabLoading] = useState(false);
 
   // Data states
   const [overviewKPIs, setOverviewKPIs] = useState<any>(null);
@@ -69,9 +88,20 @@ export const MockIntelligencePage: React.FC = () => {
     init();
   }, []);
 
+  // When active tab or class filter changes, promptly load that tab's data
   useEffect(() => {
-    loadAllIntelligenceData();
-  }, [classFilter]);
+    loadTabData(activeTab, classFilter);
+  }, [activeTab, classFilter]);
+
+  const handleClassChange = (newClass: string) => {
+    setClassFilter(newClass);
+    setOverviewKPIs(null);
+    setSubjectData(null);
+    setMockComparison(null);
+    setHeatmapData(null);
+    setWeakAreasData(null);
+    setComparisonResults(null);
+  };
 
   const init = async () => {
     try {
@@ -92,39 +122,65 @@ export const MockIntelligencePage: React.FC = () => {
     }
   };
 
-  const loadAllIntelligenceData = async () => {
-    try {
-      setLoading(true);
-      const [kpis, subs, mocks, weak] = await Promise.all([
-        api.getOverview({ class: classFilter }),
-        api.getSubjectTrends({ class: classFilter }),
-        api.getMockComparison({ class: classFilter }),
-        api.getWeakAreasAndAlerts({ class: classFilter }),
-      ]);
-
-      setOverviewKPIs(kpis);
-      setSubjectData(subs);
-      setMockComparison(mocks);
-      setWeakAreasData(weak);
-
-      // Initialize subject visibility
-      if (subs?.subjects) {
-        const vis: Record<string, boolean> = {};
-        subs.subjects.forEach((s: any, idx: number) => {
-          vis[s.name] = idx < 5; // Default show top 5
-        });
-        setVisibleSubjects(vis);
-      }
-
-      // Load heatmap for latest mock
+  const prefetchRemainingTabs = (cls: string, kpis: any) => {
+    setTimeout(() => {
+      api.prefetch(`/analytics/subject-trends?class=${cls}`);
+      api.prefetch(`/analytics/mock-comparison?class=${cls}`);
+      api.prefetch(`/analytics/weak-areas?class=${cls}`);
       if (kpis?.examTrends?.length > 0) {
         const latestExamId = kpis.examTrends[kpis.examTrends.length - 1].examId;
-        const heat = await api.getHeatmap({ examinationId: latestExamId, classId: classFilter });
-        setHeatmapData(heat);
+        api.prefetch(`/analytics/heatmap?examinationId=${latestExamId}&classId=${cls}`);
+      }
+    }, 250);
+  };
+
+  const loadTabData = async (tab = activeTab, cls = classFilter) => {
+    try {
+      if (tab === 'overview' && !overviewKPIs) {
+        setTabLoading(true);
+        const kpis = await api.getOverview({ class: cls });
+        setOverviewKPIs(kpis);
+        prefetchRemainingTabs(cls, kpis);
+      } else if (tab === 'subjects' && !subjectData) {
+        setTabLoading(true);
+        const subs = await api.getSubjectTrends({ class: cls });
+        setSubjectData(subs);
+        if (subs?.subjects) {
+          const vis: Record<string, boolean> = {};
+          subs.subjects.forEach((s: any, idx: number) => {
+            vis[s.name] = idx < 5;
+          });
+          setVisibleSubjects(vis);
+        }
+      } else if (tab === 'comparison' && !mockComparison) {
+        setTabLoading(true);
+        const mocks = await api.getMockComparison({ class: cls });
+        setMockComparison(mocks);
+      } else if (tab === 'heatmap' && !heatmapData) {
+        setTabLoading(true);
+        let latestExamId = overviewKPIs?.examTrends?.[overviewKPIs.examTrends.length - 1]?.examId;
+        if (!latestExamId) {
+          const kpis = await api.getOverview({ class: cls });
+          setOverviewKPIs(kpis);
+          latestExamId = kpis?.examTrends?.[kpis.examTrends.length - 1]?.examId;
+        }
+        if (latestExamId) {
+          const heat = await api.getHeatmap({ examinationId: latestExamId, classId: cls });
+          setHeatmapData(heat);
+        }
+      } else if (tab === 'alerts' && !weakAreasData) {
+        setTabLoading(true);
+        const weak = await api.getWeakAreasAndAlerts({ class: cls });
+        setWeakAreasData(weak);
+      } else if (tab === 'students' && selectedStudentIds.length > 0 && !comparisonResults) {
+        setTabLoading(true);
+        const res = await api.compareStudents(selectedStudentIds);
+        setComparisonResults(res);
       }
     } catch (err) {
       console.error(err);
     } finally {
+      setTabLoading(false);
       setLoading(false);
     }
   };
@@ -132,10 +188,13 @@ export const MockIntelligencePage: React.FC = () => {
   const handleRunComparison = async () => {
     if (selectedStudentIds.length === 0) return;
     try {
+      setTabLoading(true);
       const res = await api.compareStudents(selectedStudentIds);
       setComparisonResults(res);
     } catch (err) {
       console.error(err);
+    } finally {
+      setTabLoading(false);
     }
   };
 
@@ -143,7 +202,6 @@ export const MockIntelligencePage: React.FC = () => {
     const el = document.getElementById(elementId);
     if (!el) return;
     try {
-      // Small timeout to ensure rendering is complete
       await new Promise((resolve) => setTimeout(resolve, 100));
       const canvas = await html2canvas(el, { backgroundColor: null });
       const url = canvas.toDataURL('image/png');
@@ -158,7 +216,7 @@ export const MockIntelligencePage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (activeTab === 'students' && selectedStudentIds.length > 0) {
+    if (activeTab === 'students' && selectedStudentIds.length > 0 && !comparisonResults) {
       handleRunComparison();
     }
   }, [activeTab, selectedStudentIds]);
@@ -213,7 +271,7 @@ export const MockIntelligencePage: React.FC = () => {
           <span className="font-semibold text-slate-500">Cohort Class:</span>
           <select
             value={classFilter}
-            onChange={(e) => setClassFilter(e.target.value)}
+            onChange={(e) => handleClassChange(e.target.value)}
             className="px-3.5 py-1.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">All Basic 9 Classes</option>
@@ -297,6 +355,9 @@ export const MockIntelligencePage: React.FC = () => {
 
       {/* ==================== SUB-TAB 1: OVERALL CLASS TREND & PASS RATE ==================== */}
       {activeTab === 'overview' && (
+        tabLoading && !overviewKPIs ? (
+          <TabSkeleton title="Calculating Overall Class Trends & KPIs..." />
+        ) : (
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Overall Class Average Progression */}
@@ -448,10 +509,14 @@ export const MockIntelligencePage: React.FC = () => {
             </div>
           </div>
         </div>
+        )
       )}
 
       {/* ==================== SUB-TAB 2: SUBJECT MULTI-SERIES & HEALTH ==================== */}
       {activeTab === 'subjects' && (
+        tabLoading && !subjectData ? (
+          <TabSkeleton title="Calculating Longitudinal Subject Multi-Series Trends..." />
+        ) : (
         <div className="space-y-6">
           <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
@@ -619,10 +684,14 @@ export const MockIntelligencePage: React.FC = () => {
             </div>
           </div>
         </div>
+        )
       )}
 
       {/* ==================== SUB-TAB 3: MOCK-TO-MOCK COMPARISON ==================== */}
-      {activeTab === 'comparison' && mockComparison && (
+      {activeTab === 'comparison' && (
+        tabLoading && !mockComparison ? (
+          <TabSkeleton title="Comparing Sequential Mock Examinations..." />
+        ) : mockComparison ? (
         <div className="space-y-6">
           {/* Section 1: Overview and Gap Analysis */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -877,10 +946,14 @@ export const MockIntelligencePage: React.FC = () => {
             </div>
           </div>
         </div>
+        ) : null
       )}
 
       {/* ==================== SUB-TAB 4: PERFORMANCE HEATMAP ==================== */}
       {activeTab === 'heatmap' && (
+        tabLoading && !heatmapData ? (
+          <TabSkeleton title="Constructing Cohort Mastery Heatmap..." />
+        ) : (
         <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
             <div>
@@ -964,6 +1037,7 @@ export const MockIntelligencePage: React.FC = () => {
             </table>
           </div>
         </div>
+        )
       )}
 
       {/* ==================== SUB-TAB 5: STUDENT COMPARISON TOOL ==================== */}
@@ -1037,7 +1111,10 @@ export const MockIntelligencePage: React.FC = () => {
       )}
 
       {/* ==================== SUB-TAB 6: WEAK AREAS & ACADEMIC ALERTS ==================== */}
-      {activeTab === 'alerts' && weakAreasData && (
+      {activeTab === 'alerts' && (
+        tabLoading && !weakAreasData ? (
+          <TabSkeleton title="Evaluating Subject Thresholds & Academic Alerts..." />
+        ) : weakAreasData ? (
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Subjects Below Target */}
@@ -1110,6 +1187,7 @@ export const MockIntelligencePage: React.FC = () => {
             </div>
           </div>
         </div>
+        ) : null
       )}
     </div>
   );

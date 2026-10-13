@@ -15,23 +15,55 @@ const API_BASE = getApiBase();
 // In-flight request deduplication map to prevent multiple identical concurrent requests
 const inFlightRequests = new Map<string, Promise<any>>();
 
-export function clearApiCache() {
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+
+const memoryCache = new Map<string, CacheEntry<any>>();
+// Data stays fresh for 90 seconds (0ms instant return)
+const CACHE_FRESH_MS = 90 * 1000;
+// Data can be served stale up to 5 minutes while revalidating in background
+const CACHE_STALE_MS = 5 * 60 * 1000;
+
+export function clearApiCache(endpointFilter?: string) {
+  if (endpointFilter) {
+    for (const key of memoryCache.keys()) {
+      if (key.includes(endpointFilter)) {
+        memoryCache.delete(key);
+      }
+    }
+  } else {
+    memoryCache.clear();
+  }
   inFlightRequests.clear();
 }
 
-export async function request<T>(
+function triggerBackgroundRevalidation<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit,
+  cacheKey: string
+) {
+  if (inFlightRequests.has(cacheKey)) return;
+
+  const promise = (async () => {
+    try {
+      const freshData = await performFetch<T>(endpoint, options, cacheKey);
+      memoryCache.set(cacheKey, { data: freshData, timestamp: Date.now() });
+    } catch (err) {
+      // Background revalidation error silently handled
+    }
+  })();
+
+  inFlightRequests.set(cacheKey, promise);
+}
+
+async function performFetch<T>(
+  endpoint: string,
+  options: RequestInit,
+  requestKey: string
 ): Promise<T> {
-  const method = (options.method || 'GET').toUpperCase();
   const token = localStorage.getItem('mock_intel_token');
-  const requestKey = `${method}:${endpoint}:${token || ''}`;
-
-  // If a request for this exact endpoint is currently in-flight, reuse it
-  if (method === 'GET' && inFlightRequests.has(requestKey)) {
-    return inFlightRequests.get(requestKey) as Promise<T>;
-  }
-
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string>),
   };
@@ -44,39 +76,79 @@ export async function request<T>(
     headers['Content-Type'] = 'application/json';
   }
 
-  const fetchPromise = (async () => {
-    try {
-      const response = await fetch(`${API_BASE}${endpoint}`, {
-        ...options,
-        headers,
-      });
+  try {
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+      ...options,
+      headers,
+    });
 
-      if (response.status === 401) {
-        localStorage.removeItem('mock_intel_token');
-        localStorage.removeItem('mock_intel_user');
-        inFlightRequests.clear();
-        if (!window.location.pathname.includes('/login')) {
-          window.location.href = '/login';
-        }
-        throw new Error('Oops!!! Check credentials, refresh and login again');
+    if (response.status === 401) {
+      localStorage.removeItem('mock_intel_token');
+      localStorage.removeItem('mock_intel_user');
+      memoryCache.clear();
+      inFlightRequests.clear();
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
       }
-
-      const data = await response.json().catch(() => null);
-
-      if (!response.ok) {
-        throw new Error(data?.error || `Request failed with status ${response.status}`);
-      }
-
-      return data as T;
-    } finally {
-      inFlightRequests.delete(requestKey);
+      throw new Error('Oops!!! Check credentials, refresh and login again');
     }
-  })();
 
-  if (method === 'GET') {
-    inFlightRequests.set(requestKey, fetchPromise);
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(data?.error || `Request failed with status ${response.status}`);
+    }
+
+    return data as T;
+  } finally {
+    inFlightRequests.delete(requestKey);
+  }
+}
+
+export async function request<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const method = (options.method || 'GET').toUpperCase();
+  const token = localStorage.getItem('mock_intel_token');
+  const requestKey = `${method}:${endpoint}:${token || ''}`;
+
+  // If this is a mutation, clear caches so future GET requests receive fresh data
+  if (method !== 'GET') {
+    const result = await performFetch<T>(endpoint, options, requestKey);
+    // Invalidate cached responses
+    memoryCache.clear();
+    return result;
   }
 
+  // Check cache for GET requests
+  const cached = memoryCache.get(requestKey);
+  const now = Date.now();
+
+  if (cached) {
+    const age = now - cached.timestamp;
+    // If completely fresh (under 90s), return immediately without touching network
+    if (age < CACHE_FRESH_MS) {
+      return cached.data as T;
+    }
+    // If stale but within window (under 5min), return cached immediately and revalidate in background
+    if (age < CACHE_STALE_MS) {
+      triggerBackgroundRevalidation<T>(endpoint, options, requestKey);
+      return cached.data as T;
+    }
+  }
+
+  // If a request for this exact endpoint is already in-flight, reuse it
+  if (inFlightRequests.has(requestKey)) {
+    return inFlightRequests.get(requestKey) as Promise<T>;
+  }
+
+  const fetchPromise = performFetch<T>(endpoint, options, requestKey).then((data) => {
+    memoryCache.set(requestKey, { data, timestamp: Date.now() });
+    return data;
+  });
+
+  inFlightRequests.set(requestKey, fetchPromise);
   return fetchPromise;
 }
 
@@ -210,5 +282,6 @@ export const api = {
   deleteCloudBackup: (id: string) => request<any>(`/backup/cloud/${id}`, { method: 'DELETE' }),
   restoreBackup: (snapshot: any) => request<any>('/backup/restore', { method: 'POST', body: JSON.stringify({ snapshot }) }),
   clearCache: clearApiCache,
+  prefetch: (endpoint: string) => request<any>(endpoint),
 };
 

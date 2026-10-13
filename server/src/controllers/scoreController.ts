@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import { prisma } from '../prisma';
 import { AuthRequest, logAudit } from '../middleware/auth';
 import { calculateGradeForScore } from '../utils/grading';
+import { clearAnalyticsCache } from './analyticsController';
 
 /**
  * Get score entry matrix for an examination and optional subject/class
@@ -272,6 +273,7 @@ export async function batchSaveScores(req: AuthRequest, res: Response): Promise<
       });
     }
 
+    clearAnalyticsCache();
     res.json({
       message: `Successfully saved ${savedScores.length} scores.`,
       savedCount: savedScores.length,
@@ -521,6 +523,7 @@ export async function commitScoreImport(req: AuthRequest, res: Response): Promis
       ipAddress: req.ip,
     });
 
+    clearAnalyticsCache();
     res.json({
       message: `Successfully imported ${importedCount} scores.`,
       importedCount,

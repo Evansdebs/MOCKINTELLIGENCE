@@ -11,14 +11,26 @@ export interface AuthRequest extends Request {
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-mock-intelligence-jwt-key-2026-ghana';
 
+interface CachedAuth {
+  user: UserTokenPayload;
+  expiresAt: number;
+}
+const tokenAuthCache = new Map<string, CachedAuth>();
+const AUTH_CACHE_TTL = 90 * 1000; // 90 seconds fast memory cache
+
+export function clearTokenAuthCache(token?: string) {
+  if (token) {
+    tokenAuthCache.delete(token);
+  } else {
+    tokenAuthCache.clear();
+  }
+}
+
 /**
  * Authentication Middleware:
- * 1. Checks Supabase Auth signature and claims via supabaseAdmin.auth.getUser(token).
- *    Resolves public."User" by authUserId, enforcing that the database role is the single source of truth.
- * 2. If token is not a Supabase token:
- *    - Verifies student tokens (strictly requiring role === 'STUDENT').
- *    - Before the sunset deadline, accepts legacy staff JWTs by resolving public."User" by id and enforcing active status and database role.
- *    - After the sunset deadline, legacy staff JWTs are rejected.
+ * 1. Checks in-memory session cache for instant sub-millisecond response.
+ * 2. Checks Supabase Auth signature and claims via supabaseAdmin.auth.getUser(token).
+ * 3. Checks internal JWT verification for students and legacy staff.
  */
 export async function authenticate(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
   const authHeader = req.headers.authorization;
@@ -28,6 +40,14 @@ export async function authenticate(req: AuthRequest, res: Response, next: NextFu
   }
 
   const token = authHeader.split(' ')[1];
+
+  // Fast-path: In-memory session cache hit
+  const cached = tokenAuthCache.get(token);
+  if (cached && cached.expiresAt > Date.now()) {
+    req.user = cached.user;
+    next();
+    return;
+  }
 
   // =========================================================================
   // Track 1: Try Supabase Auth Token verification
@@ -71,6 +91,7 @@ export async function authenticate(req: AuthRequest, res: Response, next: NextFu
         role: dbUser.role as Role,
       };
 
+      tokenAuthCache.set(token, { user: req.user, expiresAt: Date.now() + AUTH_CACHE_TTL });
       next();
       return;
     }
@@ -102,6 +123,7 @@ export async function authenticate(req: AuthRequest, res: Response, next: NextFu
         email: '',
         role: 'STUDENT',
       };
+      tokenAuthCache.set(token, { user: req.user, expiresAt: Date.now() + AUTH_CACHE_TTL });
       next();
       return;
     }
@@ -144,6 +166,7 @@ export async function authenticate(req: AuthRequest, res: Response, next: NextFu
       role: legacyUser.role as Role,
     };
 
+    tokenAuthCache.set(token, { user: req.user, expiresAt: Date.now() + AUTH_CACHE_TTL });
     next();
   } catch (error) {
     res.status(401).json({ error: 'Invalid or expired session token.' });

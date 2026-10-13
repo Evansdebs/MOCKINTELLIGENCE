@@ -20,28 +20,47 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('mock_intel_user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('mock_intel_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
   });
   const [token, setToken] = useState<string | null>(() => {
     return localStorage.getItem('mock_intel_token');
   });
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  // Instant render: Do not block UI if we already have cached session or no token at all
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    const savedToken = localStorage.getItem('mock_intel_token');
+    const savedUser = localStorage.getItem('mock_intel_user');
+    return Boolean(savedToken && !savedUser);
+  });
 
   useEffect(() => {
+    let isMounted = true;
     async function checkAuth() {
       if (token) {
         try {
           const res = await api.me();
-          setUser(res.user);
-          localStorage.setItem('mock_intel_user', JSON.stringify(res.user));
+          if (isMounted) {
+            setUser(res.user);
+            localStorage.setItem('mock_intel_user', JSON.stringify(res.user));
+          }
         } catch (err) {
-          logout();
+          if (isMounted) {
+            logout();
+          }
         }
       }
-      setIsLoading(false);
+      if (isMounted) {
+        setIsLoading(false);
+      }
     }
     checkAuth();
+    return () => {
+      isMounted = false;
+    };
   }, [token]);
 
   const login = async (credentials: { username: string; password: string }) => {

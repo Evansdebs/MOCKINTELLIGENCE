@@ -26,6 +26,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AppLogo } from '../components/AppLogo';
+import { preloadRoute } from '../App';
+import { api } from '../services/api';
 
 export const AppLayout: React.FC = () => {
   const { user, logout, isAdmin, isTeacher, isManagement } = useAuth();
@@ -97,6 +99,15 @@ export const AppLayout: React.FC = () => {
               <NavLink
                 key={item.path}
                 to={item.path}
+                onMouseEnter={() => {
+                  preloadRoute(item.path);
+                  if (item.path === '/dashboard' || item.path === '/analytics') api.prefetch('/analytics/overview');
+                  if (item.path === '/examinations') api.prefetch('/examinations');
+                  if (item.path === '/students') api.prefetch('/students');
+                }}
+                onTouchStart={() => {
+                  preloadRoute(item.path);
+                }}
                 className={({ isActive }) =>
                   `flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 ${
                     isActive
@@ -178,6 +189,9 @@ export const AppLayout: React.FC = () => {
                 <NavLink
                   key={item.path}
                   to={item.path}
+                  onTouchStart={() => {
+                    preloadRoute(item.path);
+                  }}
                   onClick={() => setMobileMenuOpen(false)}
                   className={({ isActive }) =>
                     `flex items-center justify-between px-4 py-3 rounded-xl font-medium text-sm ${
