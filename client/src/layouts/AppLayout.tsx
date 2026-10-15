@@ -58,7 +58,15 @@ export const AppLayout: React.FC = () => {
     }
   };
 
-  let navItems = [
+  interface NavItem {
+    label: string;
+    path: string;
+    icon: React.ComponentType<{ className?: string }>;
+    badge?: string;
+    end?: boolean;
+  }
+
+  let navItems: NavItem[] = [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { label: 'Examinations', path: '/examinations', icon: Calendar },
     { label: 'Students', path: '/students', icon: Users },
@@ -76,7 +84,8 @@ export const AppLayout: React.FC = () => {
 
   if (user?.role === 'STUDENT') {
     navItems = [
-      { label: 'Student Portal', path: '/portal', icon: Activity, badge: 'New' }
+      { label: 'Student Portal', path: '/portal', icon: Activity, end: true },
+      { label: 'Candidate Result Slip', path: '/portal/slip', icon: FileText, badge: 'Slip' }
     ];
   }
 
@@ -99,6 +108,7 @@ export const AppLayout: React.FC = () => {
               <NavLink
                 key={item.path}
                 to={item.path}
+                end={item.end}
                 onMouseEnter={() => {
                   preloadRoute(item.path);
                   if (item.path === '/dashboard' || item.path === '/analytics') api.prefetch('/analytics/overview');
@@ -189,6 +199,7 @@ export const AppLayout: React.FC = () => {
                 <NavLink
                   key={item.path}
                   to={item.path}
+                  end={item.end}
                   onTouchStart={() => {
                     preloadRoute(item.path);
                   }}

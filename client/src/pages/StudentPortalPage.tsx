@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
-import { TrendingUp, BookOpen, Award, CheckCircle2, AlertTriangle, ArrowRight, FileText, Printer, School, BrainCircuit, Users, Target, Clock, Calendar } from 'lucide-react';
+import { TrendingUp, BookOpen, Award, CheckCircle2, AlertTriangle, ArrowRight, FileText, Printer, School, BrainCircuit, Users, Target, Clock, Calendar, ChevronRight } from 'lucide-react';
 import {
   BarChart,
   Line,
@@ -17,6 +18,9 @@ import { ReportCardTemplate } from '../components/ReportCardTemplate';
 
 export const StudentPortalPage: React.FC = () => {
   const { user } = useAuth();
+  const location = useLocation();
+  const isSlipSection = location.pathname.includes('/slip');
+
   const [data, setData] = useState<any>(null);
   const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -132,8 +136,88 @@ export const StudentPortalPage: React.FC = () => {
     );
   };
 
+  // If viewing the dedicated Result Slip section:
+  if (isSlipSection) {
+    return (
+      <div className="space-y-6 animate-fadeIn max-w-5xl mx-auto pb-12">
+        {/* Breadcrumb / Top bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+              <Link to="/portal" className="hover:text-blue-600 transition-colors">Student Portal</Link>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-blue-600">Candidate Result Slip</span>
+            </div>
+            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
+              <FileText className="w-6 h-6 text-blue-600" />
+              Candidate Result Slip
+            </h1>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Official statement of marks & WAEC 9-point grade assessment for {data.student.fullName}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <label htmlFor="examSelect" className="text-xs font-bold text-slate-600">Exam:</label>
+              <select
+                id="examSelect"
+                value={selectedExamId}
+                onChange={(e) => setSelectedExamId(e.target.value)}
+                className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              >
+                <option value="" disabled>Select Examination</option>
+                {data.mockTimeline?.map((ex: any) => (
+                  <option key={ex.examId} value={ex.examId}>
+                    {ex.examName}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {settings?.studentsCanDownloadSlips === false ? (
+              <span className="text-xs font-medium text-amber-600 bg-amber-50 px-3 py-2 rounded-xl border border-amber-200">
+                Slip downloads disabled
+              </span>
+            ) : (
+              <button
+                onClick={handlePrint}
+                disabled={!studentResult || loadingSlip}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-semibold flex items-center gap-2 shadow-md shadow-blue-600/30 transition-all disabled:opacity-50"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Print Slip</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {loadingSlip ? (
+          <div className="flex justify-center py-20 bg-white rounded-2xl border border-slate-200/80 shadow-sm">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : studentResult ? (
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 md:p-6 max-w-4xl mx-auto overflow-x-auto print:border-none print:shadow-none print:p-0">
+            <ReportCardTemplate
+              data={studentResult}
+              chartData={[]}
+              remedialSubjects={studentResult.remedialSubjects}
+            />
+          </div>
+        ) : (
+          <div className="text-center py-16 bg-white rounded-2xl border border-slate-200/80 shadow-sm text-slate-500">
+            <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+            <p className="text-base font-semibold text-slate-700">No Result Slip Selected</p>
+            <p className="text-xs text-slate-400 mt-1">Please select an examination from the dropdown above to display your candidate result slip.</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Otherwise, default to Overview / Dashboard section:
   return (
-    <div className="space-y-8 animate-fadeIn max-w-5xl mx-auto">
+    <div className="space-y-8 animate-fadeIn max-w-5xl mx-auto pb-12">
       {/* Top Banner */}
       <div className="bg-slate-800 rounded-2xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
         <div className="absolute right-0 top-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -150,6 +234,15 @@ export const StudentPortalPage: React.FC = () => {
               Index Number: {data.student.indexNumber}
             </p>
           </div>
+
+          <Link
+            to="/portal/slip"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-600/30 transition-all self-start md:self-auto shrink-0"
+          >
+            <FileText className="w-4 h-4" />
+            <span>Open Result Slip</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
         {renderBeceCountdown()}
       </div>
@@ -285,62 +378,7 @@ export const StudentPortalPage: React.FC = () => {
           )}
         </div>
       </div>
-      
-      {/* Report Slip Section */}
-      <div className="pt-8 mt-8 border-t border-slate-200">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 print:hidden">
-          <h2 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-            <FileText className="w-5 h-5 text-blue-600" />
-            Result Slips
-          </h2>
-          <div className="flex items-center gap-3">
-            <select
-              value={selectedExamId}
-              onChange={(e) => setSelectedExamId(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:outline-none"
-            >
-              <option value="" disabled>Select Examination</option>
-              {data.mockTimeline?.map((ex: any) => (
-                <option key={ex.examId} value={ex.examId}>
-                  {ex.examName}
-                </option>
-              ))}
-            </select>
-            {data.settings?.studentsCanDownloadSlips === false ? (
-              <span className="text-sm font-medium text-amber-600 bg-amber-50 px-3 py-2 rounded-xl border border-amber-200">
-                Slip downloads are currently disabled by administration.
-              </span>
-            ) : (
-              <button
-                onClick={handlePrint}
-                disabled={!studentResult || loadingSlip}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-semibold flex items-center gap-2 shadow-md shadow-blue-600/30 transition-all disabled:opacity-50"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Print Slip</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {loadingSlip ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          </div>
-        ) : studentResult ? (
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 md:p-6 max-w-4xl mx-auto overflow-x-auto print:border-none print:shadow-none print:p-0 mt-6">
-            <ReportCardTemplate
-              data={studentResult}
-              chartData={[]}
-              remedialSubjects={studentResult.remedialSubjects}
-            />
-          </div>
-        ) : (
-          <div className="text-center py-12 text-slate-500">
-            Select an examination to view the result slip.
-          </div>
-        )}
-      </div>
     </div>
   );
 };
+

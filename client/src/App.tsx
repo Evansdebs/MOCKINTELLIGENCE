@@ -114,11 +114,11 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean 
     return <Navigate to="/dashboard" replace />;
   }
 
-  if (user.role === 'STUDENT' && location.pathname !== '/portal') {
+  if (user.role === 'STUDENT' && !location.pathname.startsWith('/portal')) {
     return <Navigate to="/portal" replace />;
   }
   
-  if (user.role !== 'STUDENT' && location.pathname === '/portal') {
+  if (user.role !== 'STUDENT' && location.pathname.startsWith('/portal')) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -144,6 +144,7 @@ export const App: React.FC = () => {
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/portal" element={<StudentPortalPage />} />
+                <Route path="/portal/slip" element={<StudentPortalPage />} />
                 <Route path="/examinations" element={<ExaminationsPage />} />
                 <Route path="/students" element={<StudentsPage />} />
                 <Route path="/students/:id" element={<StudentDetailPage />} />
