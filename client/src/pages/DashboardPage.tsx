@@ -106,16 +106,22 @@ export const DashboardPage: React.FC = () => {
   };
 
   const subjectColors = [
-    '#2563eb', // Blue
-    '#059669', // Emerald
-    '#7c3aed', // Purple
-    '#d97706', // Amber
-    '#e11d48', // Rose
-    '#0891b2', // Cyan
-    '#4f46e5', // Indigo
-    '#ea580c', // Orange
-    '#16a34a', // Green
-    '#9333ea', // Violet
+    '#2563eb', // Royal Blue
+    '#ea580c', // Bright Orange
+    '#10b981', // Emerald Green
+    '#7c3aed', // Vivid Purple
+    '#e11d48', // Crimson Rose
+    '#0284c7', // Sky / Cyan Blue
+    '#d97706', // Warm Amber / Ochre
+    '#059669', // Teal Green
+    '#ec4899', // Pink
+    '#4f46e5', // Deep Indigo
+    '#84cc16', // Lime
+    '#0891b2', // Deep Cyan
+    '#b45309', // Dark Bronze / Brown
+    '#6366f1', // Periwinkle
+    '#14b8a6', // Turquoise
+    '#9333ea', // Electric Violet
   ];
 
   return (
