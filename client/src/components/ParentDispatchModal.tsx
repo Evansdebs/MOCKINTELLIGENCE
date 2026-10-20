@@ -141,24 +141,132 @@ export const ParentDispatchModal: React.FC<ParentDispatchModalProps> = ({
     setTimeout(() => setCopiedId(null), 2500);
   };
 
-  const handleSendWhatsApp = (row: any, phone = '') => {
-    const message = generateParentMessage(row);
-    const encoded = encodeURIComponent(message);
+  // Phone state dialog
+  const [phoneDialog, setPhoneDialog] = useState<{
+    open: boolean;
+    row: any;
+    type: 'whatsapp' | 'sms';
+    phone: string;
+  }>({
+    open: false,
+    row: null,
+    type: 'whatsapp',
+    phone: '',
+  });
+
+  const [phoneMap, setPhoneMap] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem('mock_parent_phones');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const saveParentPhone = (studentId: string, phone: string) => {
+    const updated = { ...phoneMap, [studentId]: phone };
+    setPhoneMap(updated);
+    try {
+      localStorage.setItem('mock_parent_phones', JSON.stringify(updated));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const openWhatsAppLink = (message: string, phone: string) => {
     const cleanPhone = phone.replace(/[^0-9]/g, '');
-    const url = cleanPhone
-      ? `https://wa.me/${cleanPhone}?text=${encoded}`
-      : `https://api.whatsapp.com/send?text=${encoded}`;
+    const encoded = encodeURIComponent(message);
     
-    window.open(url, '_blank');
+    // Format for Ghana/international if starts with 0
+    let finalPhone = cleanPhone;
+    if (finalPhone.startsWith('0') && finalPhone.length === 10) {
+      finalPhone = `233${finalPhone.slice(1)}`;
+    }
+
+    const whatsappUrl = finalPhone
+      ? `https://api.whatsapp.com/send?phone=${finalPhone}&text=${encoded}`
+      : `https://api.whatsapp.com/send?text=${encoded}`;
+
+    // Reliable cross-browser opening
+    const win = window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+    if (!win) {
+      // Popup was blocked by browser, fallback to direct location
+      window.location.href = whatsappUrl;
+    }
+  };
+
+  const openSmsLink = (message: string, phone: string) => {
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    const encoded = encodeURIComponent(message);
+    
+    // Format sms: URI - standard for iOS and Android
+    // Some Android devices prefer '?body=' while iOS prefers '&body='
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const separator = isIOS ? '&' : '?';
+    const smsUrl = cleanPhone 
+      ? `sms:${cleanPhone}${separator}body=${encoded}`
+      : `sms:${separator}body=${encoded}`;
+
+    const a = document.createElement('a');
+    a.href = smsUrl;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const handleSendWhatsApp = (row: any) => {
+    const existingPhone = phoneMap[row.student.id] || row.student.telephone || row.student.parentPhone || '';
+    if (!existingPhone) {
+      setPhoneDialog({
+        open: true,
+        row,
+        type: 'whatsapp',
+        phone: '',
+      });
+      return;
+    }
+
+    const message = generateParentMessage(row);
+    openWhatsAppLink(message, existingPhone);
     setSentRecords((prev) => ({ ...prev, [row.student.id]: true }));
   };
 
-  const handleSendSMS = (row: any, phone = '') => {
+  const handleSendSMS = (row: any) => {
+    const existingPhone = phoneMap[row.student.id] || row.student.telephone || row.student.parentPhone || '';
+    if (!existingPhone) {
+      setPhoneDialog({
+        open: true,
+        row,
+        type: 'sms',
+        phone: '',
+      });
+      return;
+    }
+
     const message = generateParentMessage(row);
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
-    const url = `sms:${cleanPhone}?body=${encodeURIComponent(message)}`;
-    window.open(url, '_self');
+    openSmsLink(message, existingPhone);
     setSentRecords((prev) => ({ ...prev, [row.student.id]: true }));
+  };
+
+  const handleConfirmPhoneSend = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!phoneDialog.row) return;
+
+    const row = phoneDialog.row;
+    const phone = phoneDialog.phone.trim();
+    if (phone) {
+      saveParentPhone(row.student.id, phone);
+    }
+
+    const message = generateParentMessage(row);
+    if (phoneDialog.type === 'whatsapp') {
+      openWhatsAppLink(message, phone);
+    } else {
+      openSmsLink(message, phone);
+    }
+
+    setSentRecords((prev) => ({ ...prev, [row.student.id]: true }));
+    setPhoneDialog({ open: false, row: null, type: 'whatsapp', phone: '' });
   };
 
   if (!isOpen) return null;
@@ -387,6 +495,79 @@ export const ParentDispatchModal: React.FC<ParentDispatchModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Recipient Phone Number Prompt Modal */}
+      {phoneDialog.open && phoneDialog.row && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-10 h-10 rounded-xl flex items-center justify-center text-white ${
+                  phoneDialog.type === 'whatsapp' ? 'bg-emerald-600' : 'bg-blue-600'
+                }`}
+              >
+                {phoneDialog.type === 'whatsapp' ? (
+                  <MessageSquare className="w-5 h-5" />
+                ) : (
+                  <Phone className="w-5 h-5" />
+                )}
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  {phoneDialog.type === 'whatsapp' ? 'Send via WhatsApp' : 'Send via SMS'}
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  {phoneDialog.row.student.fullName}
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleConfirmPhoneSend} className="space-y-3">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">
+                  Parent Phone Number
+                </label>
+                <input
+                  type="tel"
+                  autoFocus
+                  value={phoneDialog.phone}
+                  onChange={(e) =>
+                    setPhoneDialog((prev) => ({ ...prev, phone: e.target.value }))
+                  }
+                  placeholder="e.g. 0244123456 or +233..."
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Leave blank to choose contact inside WhatsApp/SMS app directly.
+                </p>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPhoneDialog({ open: false, row: null, type: 'whatsapp', phone: '' })
+                  }
+                  className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className={`px-4 py-2 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-1.5 ${
+                    phoneDialog.type === 'whatsapp'
+                      ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30'
+                      : 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/30'
+                  }`}
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Launch {phoneDialog.type === 'whatsapp' ? 'WhatsApp' : 'SMS'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
