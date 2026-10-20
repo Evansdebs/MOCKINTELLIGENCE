@@ -72,21 +72,53 @@ export const preloadRoute = (path: string) => {
 };
 
 export const RouteFallback: React.FC = () => (
-  <div className="p-6 space-y-6 animate-pulse">
-    <div className="flex items-center justify-between">
+  <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full animate-fadeIn">
+    {/* Dynamic Top Bar Progress */}
+    <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+      <div className="h-full bg-blue-600 rounded-full animate-progress origin-left" />
+    </div>
+
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-pulse">
       <div className="space-y-2">
         <div className="h-4 w-32 bg-slate-200 rounded-full" />
         <div className="h-7 w-64 bg-slate-200 rounded-xl" />
       </div>
-      <div className="h-9 w-28 bg-slate-200 rounded-xl" />
+      <div className="h-10 w-32 bg-slate-200 rounded-xl" />
     </div>
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div className="h-28 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm" />
-      <div className="h-28 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm" />
-      <div className="h-28 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm" />
-      <div className="h-28 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm" />
+
+    {/* Metric Cards Skeleton */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-pulse">
+      <div className="h-28 bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm space-y-3">
+        <div className="h-3 w-20 bg-slate-200 rounded" />
+        <div className="h-8 w-24 bg-slate-200 rounded-lg" />
+      </div>
+      <div className="h-28 bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm space-y-3">
+        <div className="h-3 w-20 bg-slate-200 rounded" />
+        <div className="h-8 w-24 bg-slate-200 rounded-lg" />
+      </div>
+      <div className="h-28 bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm space-y-3">
+        <div className="h-3 w-20 bg-slate-200 rounded" />
+        <div className="h-8 w-24 bg-slate-200 rounded-lg" />
+      </div>
+      <div className="h-28 bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm space-y-3">
+        <div className="h-3 w-20 bg-slate-200 rounded" />
+        <div className="h-8 w-24 bg-slate-200 rounded-lg" />
+      </div>
     </div>
-    <div className="h-72 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm" />
+
+    {/* Large Section Skeleton */}
+    <div className="h-80 bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm flex flex-col justify-between animate-pulse">
+      <div className="flex justify-between items-center">
+        <div className="h-4 w-44 bg-slate-200 rounded-full" />
+        <div className="h-8 w-20 bg-slate-100 rounded-lg" />
+      </div>
+      <div className="h-48 w-full bg-slate-50 border border-dashed border-slate-200 rounded-xl flex items-center justify-center">
+        <div className="flex items-center gap-2.5 text-xs font-semibold text-slate-400">
+          <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          <span>Loading module resources...</span>
+        </div>
+      </div>
+    </div>
   </div>
 );
 

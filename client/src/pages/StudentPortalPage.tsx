@@ -80,8 +80,31 @@ export const StudentPortalPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="space-y-6 animate-pulse max-w-5xl mx-auto">
+        <div className="bg-slate-900 rounded-2xl p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            <div className="w-16 h-16 rounded-2xl bg-slate-800" />
+            <div className="space-y-2">
+              <div className="h-5 w-48 bg-slate-800 rounded-lg" />
+              <div className="h-3 w-32 bg-slate-800 rounded" />
+            </div>
+          </div>
+          <div className="h-10 w-36 bg-slate-800 rounded-xl" />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-28 bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-3">
+              <div className="h-3 w-24 bg-slate-200 rounded" />
+              <div className="h-7 w-20 bg-slate-200 rounded-lg" />
+            </div>
+          ))}
+        </div>
+
+        <div className="h-72 bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center gap-3">
+          <div className="w-7 h-7 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs font-semibold text-slate-500">Loading your candidate portal & results...</span>
+        </div>
       </div>
     );
   }

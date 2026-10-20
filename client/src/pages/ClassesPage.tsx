@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { School, Plus, Edit2, Trash2, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
+import { SectionSkeleton } from '../components/LoadingStates';
 
 export const ClassesPage: React.FC = () => {
   const { isAdmin } = useAuth();
@@ -123,45 +124,53 @@ export const ClassesPage: React.FC = () => {
       </div>
 
       {/* Classes Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {classes.map((cls) => (
-          <div
-            key={cls.id}
-            className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between"
-          >
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                  <School className="w-5 h-5" />
+      {loading ? (
+        <SectionSkeleton type="grid" title="Loading Classes & Teacher Assignments..." />
+      ) : classes.length === 0 ? (
+        <div className="bg-white rounded-2xl p-12 border border-slate-200/80 shadow-sm text-center">
+          <p className="text-sm font-semibold text-slate-700">No classes configured yet.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {classes.map((cls) => (
+            <div
+              key={cls.id}
+              className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                    <School className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900">{cls.name}</h3>
                 </div>
-                <h3 className="text-base font-bold text-slate-900">{cls.name}</h3>
+                {cls.teacher && (
+                  <p className="text-xs text-slate-500 font-medium ml-12">Teacher: {cls.teacher.name}</p>
+                )}
               </div>
-              {cls.teacher && (
-                <p className="text-xs text-slate-500 font-medium ml-12">Teacher: {cls.teacher.name}</p>
+
+              {isAdmin && (
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => handleOpenEdit(cls)}
+                    className="px-2.5 py-1 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    onClick={() => handleDeleteClass(cls.id, cls.name)}
+                    className="px-2.5 py-1 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Remove</span>
+                  </button>
+                </div>
               )}
             </div>
-
-            {isAdmin && (
-              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-                <button
-                  onClick={() => handleOpenEdit(cls)}
-                  className="px-2.5 py-1 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
-                >
-                  <Edit2 className="w-3.5 h-3.5" />
-                  <span>Edit</span>
-                </button>
-                <button
-                  onClick={() => handleDeleteClass(cls.id, cls.name)}
-                  className="px-2.5 py-1 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Remove</span>
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Add / Edit Modal */}
       {isModalOpen && (

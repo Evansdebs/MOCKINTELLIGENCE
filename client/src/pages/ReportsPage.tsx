@@ -391,9 +391,13 @@ export const ReportsPage: React.FC = () => {
             <button
               onClick={handleExportWAEC}
               disabled={generating}
-              className="px-4 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all"
+              className="px-4 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all disabled:opacity-50"
             >
-              <Download className="w-4 h-4 text-amber-600" />
+              {generating ? (
+                <div className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Download className="w-4 h-4 text-amber-600" />
+              )}
               <span>WAEC Export (CSV)</span>
             </button>
           )}
@@ -401,9 +405,13 @@ export const ReportsPage: React.FC = () => {
           <button
             onClick={handleExportExcel}
             disabled={generating}
-            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all"
+            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all disabled:opacity-50"
           >
-            <Download className="w-4 h-4 text-emerald-600" />
+            {generating ? (
+              <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Download className="w-4 h-4 text-emerald-600" />
+            )}
             <span>Export to Excel (.xlsx)</span>
           </button>
 
@@ -412,8 +420,12 @@ export const ReportsPage: React.FC = () => {
             disabled={generating}
             className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-blue-600/30 transition-all disabled:opacity-50"
           >
-            <Printer className="w-4 h-4" />
-            <span>{generating ? 'Compiling Report...' : 'Generate Official PDF'}</span>
+            {generating ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Printer className="w-4 h-4" />
+            )}
+            <span>{generating ? 'Compiling Official Report...' : 'Generate Official PDF'}</span>
           </button>
         </div>
       </div>

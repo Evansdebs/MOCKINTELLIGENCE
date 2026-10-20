@@ -19,6 +19,7 @@ import jsPDF from 'jspdf';
 import { api } from '../services/api';
 import { Examination, Student } from '../types';
 import { ReportCardTemplate } from '../components/ReportCardTemplate';
+import { SectionSkeleton } from '../components/LoadingStates';
 
 export const ResultsPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -312,8 +313,17 @@ export const ResultsPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Loading state indicator */}
+      {loading && (
+        <SectionSkeleton 
+          type={activeView === 'slip' ? 'card' : 'table'} 
+          rows={7} 
+          title={activeView === 'slip' ? 'Generating Candidate Performance Slip...' : 'Compiling Master Class Examination Ledger...'} 
+        />
+      )}
+
       {/* VIEW 1: CANDIDATE RESULT SLIP (Section 17) */}
-      {activeView === 'slip' && studentResult && (
+      {!loading && activeView === 'slip' && studentResult && (
         <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 max-w-4xl mx-auto overflow-x-auto print:border-none print:shadow-none print:p-0">
           <ReportCardTemplate 
             data={studentResult} 
@@ -324,7 +334,7 @@ export const ResultsPage: React.FC = () => {
       )}
 
       {/* VIEW 2: MASTER CLASS RESULTS SHEET */}
-      {activeView === 'class' && classResult && (
+      {!loading && activeView === 'class' && classResult && (
         <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
             <div>

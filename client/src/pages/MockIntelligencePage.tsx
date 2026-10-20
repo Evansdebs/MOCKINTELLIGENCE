@@ -36,17 +36,22 @@ import { api } from '../services/api';
 import { Student } from '../types';
 
 const TabSkeleton: React.FC<{ title?: string }> = ({ title = 'Loading Analytics...' }) => (
-  <div className="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-4 animate-pulse">
-    <div className="flex items-center justify-between">
-      <div className="space-y-2">
-        <div className="h-4 w-40 bg-slate-200 rounded-full" />
-        <div className="h-6 w-64 bg-slate-200 rounded-xl" />
+  <div className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 animate-pulse">
+    <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+      <div className="space-y-1.5">
+        <div className="h-4 w-40 bg-slate-200 dark:bg-slate-700 rounded-full" />
+        <div className="h-6 w-64 bg-slate-200 dark:bg-slate-700 rounded-xl" />
       </div>
-      <div className="h-8 w-24 bg-slate-200 rounded-lg" />
+      <div className="h-8 w-24 bg-slate-100 dark:bg-slate-800 rounded-lg" />
     </div>
-    <div className="h-64 w-full bg-slate-50 border border-dashed border-slate-200 rounded-xl flex items-center justify-center text-xs font-semibold text-slate-400">
-      <div className="flex items-center gap-2">
-        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+    <div className="h-72 w-full bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl flex flex-col justify-end p-6 gap-4">
+      <div className="flex items-end justify-between gap-4 h-full pt-8">
+        {[45, 70, 35, 80, 60, 95, 75, 50, 85, 65].map((h, i) => (
+          <div key={i} className="flex-1 bg-slate-200 dark:bg-slate-700/60 rounded-t-lg transition-all" style={{ height: `${h}%` }} />
+        ))}
+      </div>
+      <div className="flex items-center justify-center gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-800 text-xs font-semibold text-slate-500">
+        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
         <span>{title}</span>
       </div>
     </div>
@@ -229,22 +234,22 @@ export const MockIntelligencePage: React.FC = () => {
   };
 
   const subjectColors = [
-    '#2563eb', // Royal Blue
-    '#ea580c', // Bright Orange
-    '#10b981', // Emerald Green
-    '#7c3aed', // Vivid Purple
-    '#e11d48', // Crimson Rose
+    '#6b9affff', // Royal Blue
+    '#e35103ff', // Bright Orange
+    '#051511ff', // Emerald Green
+    '#5104d7ff', // Vivid Purple
+    '#c2002aff', // Crimson Rose
     '#0284c7', // Sky / Cyan Blue
-    '#d97706', // Warm Amber / Ochre
+    '#ffc380ff', // Warm Amber / Ochre
     '#059669', // Teal Green
     '#ec4899', // Pink
     '#4f46e5', // Deep Indigo
     '#84cc16', // Lime
-    '#0891b2', // Deep Cyan
+    '#084825ff', // Deep Cyan
     '#b45309', // Dark Bronze / Brown
-    '#6366f1', // Periwinkle
+    '#e30000ff', // Periwinkle
     '#14b8a6', // Turquoise
-    '#9333ea', // Electric Violet
+    '#841ce4ff', // Electric Violet
   ];
 
   const getHeatmapColor = (percentage: number | null) => {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserCheck, Plus, X, Shield, Mail, User, BookOpen, Key, Send, CheckCircle2, Copy, Edit2, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { api } from '../services/api';
+import { SectionSkeleton, LoadingSpinner } from '../components/LoadingStates';
 
 export const UsersPage: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
@@ -185,8 +186,15 @@ export const UsersPage: React.FC = () => {
       </div>
 
       {/* Users List */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+      {loading ? (
+        <SectionSkeleton type="table" rows={6} title="Loading User Accounts & Staff Permissions..." />
+      ) : users.length === 0 ? (
+        <div className="bg-white rounded-2xl p-12 border border-slate-200/80 shadow-sm text-center">
+          <p className="text-sm font-semibold text-slate-700">No user accounts found.</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-extrabold uppercase text-[10px] tracking-wider">
               <tr>
@@ -311,6 +319,7 @@ export const UsersPage: React.FC = () => {
           </table>
         </div>
       </div>
+      )}
 
       {/* Add User Modal */}
       {isAddModalOpen && (

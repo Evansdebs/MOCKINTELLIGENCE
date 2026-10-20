@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AppLogo } from '../components/AppLogo';
+import { GlobalLoadingBar } from '../components/GlobalLoadingBar';
 import { preloadRoute } from '../App';
 import { api } from '../services/api';
 
@@ -90,7 +91,8 @@ export const AppLayout: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row relative">
+      <GlobalLoadingBar />
       {/* Sidebar Desktop */}
       <aside className="print:hidden hidden md:flex flex-col w-72 bg-slate-900 text-slate-200 border-r border-slate-800 shrink-0 select-none">
         {/* Brand */}

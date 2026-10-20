@@ -5,6 +5,7 @@ import { api } from '../services/api';
 import { GradeScale } from '../types';
 import { BackupRestoreManager } from '../components/BackupRestoreManager';
 import { useTheme, SystemThemeColor } from '../context/ThemeContext';
+import { SectionSkeleton } from '../components/LoadingStates';
 
 export const SettingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'school' | 'grading' | 'analytics' | 'permissions' | 'backup'>('school');
@@ -209,9 +210,14 @@ export const SettingsPage: React.FC = () => {
         </button>
       </div>
 
-      {/* TAB 1: SCHOOL INFO (Section 7) */}
-      {activeTab === 'school' && (
-        <form onSubmit={handleSaveSchoolSettings} className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-5">
+      {/* Loading Skeleton */}
+      {loading ? (
+        <SectionSkeleton type="card" title="Loading Institutional Settings & Grade Scales..." />
+      ) : (
+        <>
+          {/* TAB 1: SCHOOL INFO (Section 7) */}
+          {activeTab === 'school' && (
+            <form onSubmit={handleSaveSchoolSettings} className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-5">
           <div>
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <div className="flex items-center gap-2">
@@ -770,6 +776,8 @@ export const SettingsPage: React.FC = () => {
 
       {/* TAB 5: BACKUP & RESTORE */}
       {activeTab === 'backup' && <BackupRestoreManager />}
+        </>
+      )}
     </div>
   );
 };

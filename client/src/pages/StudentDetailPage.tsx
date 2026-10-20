@@ -65,8 +65,45 @@ export const StudentDetailPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="p-12 text-center text-slate-400 text-xs">
-        Loading candidate performance intelligence...
+      <div className="space-y-6 animate-pulse">
+        {/* Header Profile Skeleton */}
+        <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-slate-200" />
+            <div className="space-y-2">
+              <div className="h-5 w-48 bg-slate-200 rounded-lg" />
+              <div className="h-3 w-32 bg-slate-100 rounded" />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <div className="h-9 w-24 bg-slate-200 rounded-xl" />
+            <div className="h-9 w-28 bg-slate-200 rounded-xl" />
+          </div>
+        </div>
+
+        {/* Metric Cards Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-28 bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm space-y-3">
+              <div className="h-3 w-20 bg-slate-200 rounded" />
+              <div className="h-7 w-28 bg-slate-200 rounded-lg" />
+            </div>
+          ))}
+        </div>
+
+        {/* Longitudinal Chart Skeleton */}
+        <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="h-4 w-48 bg-slate-200 rounded-full" />
+            <div className="h-6 w-20 bg-slate-100 rounded-lg" />
+          </div>
+          <div className="h-64 w-full bg-slate-50 border border-dashed border-slate-200 rounded-xl flex items-center justify-center">
+            <div className="flex items-center gap-2.5 text-xs font-semibold text-slate-400">
+              <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+              <span>Analyzing candidate multi-mock longitudinal trajectory...</span>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

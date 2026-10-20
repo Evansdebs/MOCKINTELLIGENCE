@@ -35,6 +35,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { BECECountdown } from '../components/dashboard/BECECountdown';
+import { SectionSkeleton } from '../components/LoadingStates';
 
 export const DashboardPage: React.FC = () => {
   const { user, isAdmin } = useAuth();
@@ -220,7 +221,15 @@ export const DashboardPage: React.FC = () => {
         <BECECountdown settings={settings} />
       </div>
 
-      {user?.role === 'TEACHER' ? (
+      {loading ? (
+        <div className="space-y-6">
+          <SectionSkeleton type="grid" title="Calculating Academic Metrics & Performance Signals..." />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <SectionSkeleton type="chart" title="Generating Longitudinal Cohort Trends..." />
+            <SectionSkeleton type="chart" title="Aggregating Weak Subject Breakdown..." />
+          </div>
+        </div>
+      ) : user?.role === 'TEACHER' ? (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm card-glow">

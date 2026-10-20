@@ -454,13 +454,27 @@ export const ScoreEntryPage: React.FC = () => {
                       })}
                     </tr>
                   ))
+                ) : loading ? (
+                  <tr>
+                    <td
+                      colSpan={(sheetData?.subjects?.length || 0) + 3}
+                      className="py-16 text-center"
+                    >
+                      <div className="flex flex-col items-center justify-center gap-3">
+                        <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                        <span className="text-xs font-semibold text-slate-500">
+                          Retrieving examination score matrix & candidate records...
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
                 ) : (
                   <tr>
                     <td
                       colSpan={(sheetData?.subjects?.length || 0) + 3}
                       className="py-12 text-center text-slate-400"
                     >
-                      {loading ? 'Loading score matrix...' : 'No candidate rows found.'}
+                      No candidate rows found.
                     </td>
                   </tr>
                 )}

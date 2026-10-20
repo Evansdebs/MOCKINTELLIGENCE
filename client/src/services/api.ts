@@ -26,6 +26,27 @@ const CACHE_FRESH_MS = 90 * 1000;
 // Data can be served stale up to 5 minutes while revalidating in background
 const CACHE_STALE_MS = 5 * 60 * 1000;
 
+let activeRequestsCount = 0;
+const loadingListeners = new Set<(count: number) => void>();
+
+function notifyLoadingListeners() {
+  loadingListeners.forEach((listener) => {
+    try {
+      listener(activeRequestsCount);
+    } catch (e) {
+      console.error(e);
+    }
+  });
+}
+
+export function subscribeToLoading(callback: (count: number) => void) {
+  loadingListeners.add(callback);
+  callback(activeRequestsCount);
+  return () => {
+    loadingListeners.delete(callback);
+  };
+}
+
 export function clearApiCache(endpointFilter?: string) {
   if (endpointFilter) {
     for (const key of memoryCache.keys()) {
@@ -76,6 +97,9 @@ async function performFetch<T>(
     headers['Content-Type'] = 'application/json';
   }
 
+  activeRequestsCount++;
+  notifyLoadingListeners();
+
   try {
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
@@ -102,6 +126,8 @@ async function performFetch<T>(
     return data as T;
   } finally {
     inFlightRequests.delete(requestKey);
+    activeRequestsCount = Math.max(0, activeRequestsCount - 1);
+    notifyLoadingListeners();
   }
 }
 
@@ -283,5 +309,6 @@ export const api = {
   restoreBackup: (snapshot: any) => request<any>('/backup/restore', { method: 'POST', body: JSON.stringify({ snapshot }) }),
   clearCache: clearApiCache,
   prefetch: (endpoint: string) => request<any>(endpoint),
+  subscribeToLoading,
 };
 

@@ -18,6 +18,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { Student } from '../types';
+import { SectionSkeleton } from '../components/LoadingStates';
 import * as XLSX from 'xlsx';
 
 export const StudentsPage: React.FC = () => {
@@ -348,9 +349,12 @@ export const StudentsPage: React.FC = () => {
       </div>
 
       {/* Students Table */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-700">
+      {loading ? (
+        <SectionSkeleton type="table" rows={8} title="Loading Registered Basic 9 Learners..." />
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs text-slate-700">
             <thead className="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
               <tr>
                 <th className="py-3.5 px-4">Index No</th>
@@ -445,6 +449,7 @@ export const StudentsPage: React.FC = () => {
           </table>
         </div>
       </div>
+      )}
 
       {/* Add / Edit Student Modal */}
       {(isAddModalOpen || isEditModalOpen) && (
