@@ -8,12 +8,16 @@ import {
   BookOpen,
   Calendar,
   School,
+  MessageSquare,
+  IdCard,
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { api } from '../services/api';
 import { Examination, Subject, Student } from '../types';
+import { ParentDispatchModal } from '../components/ParentDispatchModal';
+import { CandidateCardGenerator } from '../components/CandidateCardGenerator';
 
 export const ReportsPage: React.FC = () => {
   const [reportType, setReportType] = useState<'class' | 'student' | 'subject' | 'series'>('class');
@@ -28,6 +32,8 @@ export const ReportsPage: React.FC = () => {
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>('');
   const [selectedClass, setSelectedClass] = useState<string>('all');
   const [generating, setGenerating] = useState(false);
+  const [isParentDispatchOpen, setIsParentDispatchOpen] = useState(false);
+  const [isIdCardsOpen, setIsIdCardsOpen] = useState(false);
 
   useEffect(() => {
     init();
@@ -261,13 +267,33 @@ export const ReportsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-          Academic Report Generation
-        </h1>
-        <p className="text-xs text-slate-500 mt-0.5">
-          Generate formal PDF publication slips and Excel analytic matrices for candidates and management
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            Academic Report Generation
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Generate formal PDF publication slips, candidate desk cards, and instant parent notifications
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={() => setIsIdCardsOpen(true)}
+            className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+          >
+            <IdCard className="w-4 h-4 text-blue-400" />
+            <span>Candidate Desk Slips & IDs</span>
+          </button>
+
+          <button
+            onClick={() => setIsParentDispatchOpen(true)}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-600/30 transition-all"
+          >
+            <MessageSquare className="w-4 h-4" />
+            <span>Parent WhatsApp Dispatch</span>
+          </button>
+        </div>
       </div>
 
       {/* Report Type Selector */}
@@ -429,6 +455,19 @@ export const ReportsPage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Parent WhatsApp & SMS Dispatch Modal */}
+      <ParentDispatchModal
+        isOpen={isParentDispatchOpen}
+        onClose={() => setIsParentDispatchOpen(false)}
+        examinationId={selectedExamId}
+      />
+
+      {/* Candidate Card and Desk Slips Generator Modal */}
+      <CandidateCardGenerator
+        isOpen={isIdCardsOpen}
+        onClose={() => setIsIdCardsOpen(false)}
+      />
     </div>
   );
 };

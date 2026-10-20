@@ -14,11 +14,13 @@ import {
   AlertTriangle,
   CheckCircle2,
   FileSpreadsheet,
+  IdCard,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { Student } from '../types';
 import { SectionSkeleton } from '../components/LoadingStates';
+import { CandidateCardGenerator } from '../components/CandidateCardGenerator';
 import * as XLSX from 'xlsx';
 
 export const StudentsPage: React.FC = () => {
@@ -38,6 +40,7 @@ export const StudentsPage: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isCardGeneratorOpen, setIsCardGeneratorOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
   // Add/Edit Form
@@ -262,6 +265,14 @@ export const StudentsPage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={() => setIsCardGeneratorOpen(true)}
+            className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm"
+          >
+            <IdCard className="w-4 h-4 text-blue-400" />
+            <span>Desk Slips & IDs</span>
+          </button>
+
           <button
             onClick={handleExportExcel}
             className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all"
@@ -748,6 +759,12 @@ export const StudentsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Candidate Card and Desk Slips Generator Modal */}
+      <CandidateCardGenerator
+        isOpen={isCardGeneratorOpen}
+        onClose={() => setIsCardGeneratorOpen(false)}
+      />
     </div>
   );
 };
