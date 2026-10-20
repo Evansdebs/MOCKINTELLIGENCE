@@ -53,6 +53,8 @@ export interface Student {
   classRoom?: any;
   house?: string;
   photoUrl?: string;
+  parentPhone?: string;
+  parentName?: string;
   status: string;
   _count?: { scores: number };
 }

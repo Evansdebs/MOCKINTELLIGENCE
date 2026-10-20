@@ -173,6 +173,16 @@ export const ParentDispatchModal: React.FC<ParentDispatchModalProps> = ({
     }
   };
 
+  // Dispatched action status notice / modal
+  const [dispatchAlert, setDispatchAlert] = useState<{
+    show: boolean;
+    title: string;
+    message: string;
+    linkUrl?: string;
+    linkLabel?: string;
+    type: 'success' | 'info' | 'warning';
+  } | null>(null);
+
   const openWhatsAppLink = (message: string, phone: string) => {
     const cleanPhone = phone.replace(/[^0-9]/g, '');
     const encoded = encodeURIComponent(message);
@@ -183,15 +193,36 @@ export const ParentDispatchModal: React.FC<ParentDispatchModalProps> = ({
       finalPhone = `233${finalPhone.slice(1)}`;
     }
 
-    const whatsappUrl = finalPhone
-      ? `https://api.whatsapp.com/send?phone=${finalPhone}&text=${encoded}`
-      : `https://api.whatsapp.com/send?text=${encoded}`;
+    // Try WhatsApp Web first on desktop, fallback to wa.me
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    // Use https://wa.me/ for mobile, https://web.whatsapp.com/send/ or wa.me for desktop
+    const targetUrl = finalPhone
+      ? (isMobile ? `https://wa.me/${finalPhone}?text=${encoded}` : `https://web.whatsapp.com/send?phone=${finalPhone}&text=${encoded}`)
+      : `https://wa.me/?text=${encoded}`;
 
-    // Reliable cross-browser opening
-    const win = window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-    if (!win) {
-      // Popup was blocked by browser, fallback to direct location
-      window.location.href = whatsappUrl;
+    // Try standard popup
+    const newWindow = window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    
+    // If browser popup blocker suppressed it, provide a direct click dialog so user is never stuck
+    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+      setDispatchAlert({
+        show: true,
+        title: 'Ready to Open WhatsApp',
+        message: 'Your browser prevented the window from opening automatically. Click the link below to launch WhatsApp Web or App directly:',
+        linkUrl: targetUrl,
+        linkLabel: 'Open WhatsApp Now',
+        type: 'info',
+      });
+    } else {
+      setDispatchAlert({
+        show: true,
+        title: 'WhatsApp Launched',
+        message: `Opened chat for ${finalPhone || 'contact'}. The result notification has been pre-filled for you. Click Send in WhatsApp to complete.`,
+        linkUrl: targetUrl,
+        linkLabel: 'Reopen WhatsApp Web',
+        type: 'success',
+      });
     }
   };
 
@@ -199,23 +230,54 @@ export const ParentDispatchModal: React.FC<ParentDispatchModalProps> = ({
     const cleanPhone = phone.replace(/[^0-9]/g, '');
     const encoded = encodeURIComponent(message);
     
-    // Format sms: URI - standard for iOS and Android
-    // Some Android devices prefer '?body=' while iOS prefers '&body='
+    // Also copy to clipboard so desktop users who don't have default SMS handlers can still paste easily
+    navigator.clipboard.writeText(message);
+
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const separator = isIOS ? '&' : '?';
     const smsUrl = cleanPhone 
       ? `sms:${cleanPhone}${separator}body=${encoded}`
       : `sms:${separator}body=${encoded}`;
 
-    const a = document.createElement('a');
-    a.href = smsUrl;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    if (isMobile) {
+      // Trigger via anchor
+      const a = document.createElement('a');
+      a.href = smsUrl;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      setDispatchAlert({
+        show: true,
+        title: 'SMS App Triggered',
+        message: `Prompted SMS app for ${cleanPhone}. The message has also been copied to your clipboard.`,
+        type: 'success',
+      });
+    } else {
+      // Desktop user - sms: protocol usually has no handler in Windows/Mac
+      // Trigger it in case they have Phone Link / FaceTime, but also show prominent copy banner
+      try {
+        const a = document.createElement('a');
+        a.href = smsUrl;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch (err) {
+        console.warn('SMS protocol not supported', err);
+      }
+
+      setDispatchAlert({
+        show: true,
+        title: 'SMS Text Copied to Clipboard',
+        message: `Recipient: ${cleanPhone || 'No contact specified'}. Since you are on a desktop computer, the formatted SMS report has been copied to your clipboard ready to paste into your SMS gateway or modem!`,
+        type: 'info',
+      });
+    }
   };
 
   const handleSendWhatsApp = (row: any) => {
-    const existingPhone = phoneMap[row.student.id] || row.student.telephone || row.student.parentPhone || '';
+    const existingPhone = phoneMap[row.student.id] || row.student.parentPhone || row.student.telephone || '';
     if (!existingPhone) {
       setPhoneDialog({
         open: true,
@@ -232,7 +294,7 @@ export const ParentDispatchModal: React.FC<ParentDispatchModalProps> = ({
   };
 
   const handleSendSMS = (row: any) => {
-    const existingPhone = phoneMap[row.student.id] || row.student.telephone || row.student.parentPhone || '';
+    const existingPhone = phoneMap[row.student.id] || row.student.parentPhone || row.student.telephone || '';
     if (!existingPhone) {
       setPhoneDialog({
         open: true,
@@ -565,6 +627,62 @@ export const ParentDispatchModal: React.FC<ParentDispatchModalProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Dispatch Action Feedback / Direct Link Popup */}
+      {dispatchAlert?.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-10 h-10 rounded-xl flex items-center justify-center text-white ${
+                  dispatchAlert.type === 'success'
+                    ? 'bg-emerald-600'
+                    : dispatchAlert.type === 'warning'
+                    ? 'bg-amber-600'
+                    : 'bg-blue-600'
+                }`}
+              >
+                {dispatchAlert.type === 'success' ? (
+                  <CheckCircle2 className="w-5 h-5" />
+                ) : (
+                  <ExternalLink className="w-5 h-5" />
+                )}
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  {dispatchAlert.title}
+                </h3>
+                <p className="text-[11px] text-slate-500">Dispatch Notification</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              {dispatchAlert.message}
+            </p>
+
+            <div className="pt-2 flex items-center justify-end gap-2">
+              {dispatchAlert.linkUrl && (
+                <a
+                  href={dispatchAlert.linkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-sm"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>{dispatchAlert.linkLabel || 'Open Link'}</span>
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => setDispatchAlert(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700"
+              >
+                Dismiss
+              </button>
+            </div>
           </div>
         </div>
       )}

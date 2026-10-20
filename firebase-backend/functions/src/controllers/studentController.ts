@@ -108,6 +108,8 @@ export async function createStudent(req: AuthRequest, res: Response): Promise<vo
       classId,
       house,
       photoUrl,
+      parentPhone,
+      parentName,
     } = req.body;
 
     if (!studentId || !indexNumber || !firstName || !lastName || !gender) {
@@ -142,6 +144,8 @@ export async function createStudent(req: AuthRequest, res: Response): Promise<vo
       classId: classId || null,
       house: house?.trim() || null,
       photoUrl: photoUrl || null,
+      parentPhone: parentPhone ? String(parentPhone).trim() : null,
+      parentName: parentName ? String(parentName).trim() : null,
       status: 'Active',
       pin: Math.floor(1000 + Math.random() * 9000).toString(),
       createdAt: new Date().toISOString(),
@@ -170,7 +174,7 @@ export async function createStudent(req: AuthRequest, res: Response): Promise<vo
 export async function updateStudent(req: AuthRequest, res: Response): Promise<void> {
   try {
     const id = req.params.id as string;
-    const { studentId, indexNumber, firstName, middleName, lastName, gender, dateOfBirth, classId, house, status, photoUrl } = req.body;
+    const { studentId, indexNumber, firstName, middleName, lastName, gender, dateOfBirth, classId, house, status, photoUrl, parentPhone, parentName } = req.body;
 
     const existingDoc = await db.collection('students').doc(id).get();
     if (!existingDoc.exists) {
@@ -194,6 +198,8 @@ export async function updateStudent(req: AuthRequest, res: Response): Promise<vo
       dateOfBirth: dateOfBirth ? new Date(dateOfBirth).toISOString() : existing.dateOfBirth,
       classId: classId !== undefined ? classId : existing.classId,
       house: house !== undefined ? (house ? house.trim() : null) : existing.house,
+      parentPhone: parentPhone !== undefined ? (parentPhone ? String(parentPhone).trim() : null) : existing.parentPhone,
+      parentName: parentName !== undefined ? (parentName ? String(parentName).trim() : null) : existing.parentName,
       status: status || existing.status,
       photoUrl: photoUrl !== undefined ? photoUrl : existing.photoUrl,
       updatedAt: new Date().toISOString(),
@@ -307,6 +313,8 @@ export async function previewStudentImport(req: AuthRequest, res: Response): Pro
       const gender = String(row['Gender'] || row['gender'] || 'Male').trim();
       const studentClass = String(row['Class'] || row['class'] || 'Basic 9').trim();
       const house = String(row['House'] || row['house'] || '').trim();
+      const parentPhone = String(row['Parent Phone'] || row['Parent Contact'] || row['parentPhone'] || row['Contact'] || row['Phone'] || '').trim();
+      const parentName = String(row['Parent Name'] || row['parentName'] || row['Guardian'] || '').trim();
 
       const errors: string[] = [];
 
@@ -346,6 +354,8 @@ export async function previewStudentImport(req: AuthRequest, res: Response): Pro
         gender: gender.toLowerCase().startsWith('f') ? 'Female' : 'Male',
         class: studentClass || 'Basic 9',
         house: house || null,
+        parentPhone: parentPhone || null,
+        parentName: parentName || null,
       };
 
       if (errors.length > 0) {
@@ -405,7 +415,8 @@ export async function commitStudentImport(req: AuthRequest, res: Response): Prom
           fullName: st.fullName || [st.firstName, st.middleName, st.lastName].filter(Boolean).join(' '),
           gender: st.gender || 'Male',
           classId: classId,
-          house: st.house || null,
+          parentPhone: st.parentPhone ? String(st.parentPhone).trim() : null,
+          parentName: st.parentName ? String(st.parentName).trim() : null,
           status: 'Active',
           pin: Math.floor(1000 + Math.random() * 9000).toString(),
           createdAt: new Date().toISOString(),
@@ -466,6 +477,8 @@ export async function exportStudentsExcel(req: AuthRequest, res: Response): Prom
       'Gender': s.gender,
       'Class': s.classRoom?.name || '',
       'House': s.house || '',
+      'Parent Contact': s.parentPhone || '',
+      'Parent Name': s.parentName || '',
       'Status': s.status,
       'Portal PIN': s.pin || 'N/A',
     }));

@@ -52,6 +52,8 @@ export const StudentsPage: React.FC = () => {
   const [formGender, setFormGender] = useState('Male');
   const [formClassId, setFormClassId] = useState('');
   const [formHouse, setFormHouse] = useState('');
+  const [formParentPhone, setFormParentPhone] = useState('');
+  const [formParentName, setFormParentName] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
 
   // Import states
@@ -97,6 +99,8 @@ export const StudentsPage: React.FC = () => {
     setFormGender('Male');
     setFormClassId(classesList.length > 0 ? classesList[0].id : '');
     setFormHouse('');
+    setFormParentPhone('');
+    setFormParentName('');
     setFormError(null);
     setIsAddModalOpen(true);
   };
@@ -111,6 +115,8 @@ export const StudentsPage: React.FC = () => {
     setFormGender(st.gender);
     setFormClassId(st.classId || '');
     setFormHouse(st.house || '');
+    setFormParentPhone(st.parentPhone || '');
+    setFormParentName(st.parentName || '');
     setFormError(null);
     setIsEditModalOpen(true);
   };
@@ -128,6 +134,8 @@ export const StudentsPage: React.FC = () => {
       gender: formGender,
       classId: formClassId,
       house: formHouse.trim() || undefined,
+      parentPhone: formParentPhone.trim() || undefined,
+      parentName: formParentName.trim() || undefined,
     };
 
     try {
@@ -213,7 +221,9 @@ export const StudentsPage: React.FC = () => {
         'Last Name': 'Mensah',
         'Gender': 'Male',
         'Class': 'Basic 9A',
-        'House': 'Aggrey House'
+        'House': 'Aggrey House',
+        'Parent Phone': '0241234567',
+        'Parent Name': 'Mr. Mensah'
       }
     ];
 
@@ -374,6 +384,7 @@ export const StudentsPage: React.FC = () => {
                 <th className="py-3.5 px-4">Gender</th>
                 <th className="py-3.5 px-4">Class</th>
                 <th className="py-3.5 px-4">House</th>
+                <th className="py-3.5 px-4">Parent Contact</th>
                 <th className="py-3.5 px-4 text-center">Status</th>
                 <th className="py-3.5 px-4 text-right">Actions</th>
               </tr>
@@ -406,6 +417,15 @@ export const StudentsPage: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4 font-medium text-slate-800">{st.classRoom?.name || st.class || '—'}</td>
                     <td className="py-3.5 px-4 text-slate-500">{st.house || '—'}</td>
+                    <td className="py-3.5 px-4 font-mono text-slate-600 text-[11px]">
+                      {st.parentPhone ? (
+                        <span className="inline-flex items-center gap-1 text-slate-700">
+                          {st.parentPhone}
+                        </span>
+                      ) : (
+                        <span className="text-slate-300 italic text-[10px]">Not set</span>
+                      )}
+                    </td>
                     <td className="py-3.5 px-4 text-center">
                       <span
                         className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
@@ -593,6 +613,45 @@ export const StudentsPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Parent / Guardian Contact Details */}
+              <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    Parent / Guardian Contact (SMS & WhatsApp Reports)
+                  </span>
+                  <span className="text-[10px] text-slate-500">Optional</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Parent Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={formParentPhone}
+                      onChange={(e) => setFormParentPhone(e.target.value)}
+                      placeholder="e.g. 0244123456 or +233..."
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Parent / Guardian Name
+                    </label>
+                    <input
+                      type="text"
+                      value={formParentName}
+                      onChange={(e) => setFormParentName(e.target.value)}
+                      placeholder="e.g. Mr. Mensah"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+                    />
+                  </div>
+                </div>
+                <p className="text-[10px] text-slate-400">
+                  Used by Mock Intelligence to automatically dispatch mock report summaries directly to the parent's WhatsApp or SMS.
+                </p>
+              </div>
+
               <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
@@ -628,7 +687,7 @@ export const StudentsPage: React.FC = () => {
                 <div>
                   <h3 className="text-base font-bold text-slate-900">Import Students from Excel</h3>
                   <p className="text-[11px] text-slate-500">
-                    Expected columns: Student ID, Index Number, First Name, Middle Name, Last Name, Gender, Class, House
+                    Expected columns: Student ID, Index Number, First Name, Middle Name, Last Name, Gender, Class, House, Parent Phone, Parent Name
                   </p>
                 </div>
               </div>
@@ -720,6 +779,7 @@ export const StudentsPage: React.FC = () => {
                             <th className="p-2">Name</th>
                             <th className="p-2">Gender</th>
                             <th className="p-2">Class</th>
+                            <th className="p-2">Parent Contact</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -729,6 +789,7 @@ export const StudentsPage: React.FC = () => {
                               <td className="p-2 font-semibold text-slate-800">{v.fullName}</td>
                               <td className="p-2">{v.gender}</td>
                               <td className="p-2">{v.class}</td>
+                              <td className="p-2 font-mono text-slate-500">{v.parentPhone || '—'}</td>
                             </tr>
                           ))}
                         </tbody>
