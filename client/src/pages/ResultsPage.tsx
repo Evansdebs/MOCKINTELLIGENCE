@@ -117,36 +117,194 @@ export const ResultsPage: React.FC = () => {
     window.print();
   };
 
-  const handleExportExcel = () => {
+  const getScoreBandStyle = (percentage: number | null | undefined) => {
+    if (percentage === null || percentage === undefined || isNaN(percentage)) {
+      return null;
+    }
+    if (percentage >= 80) {
+      // 80–100% Excellent (Emerald)
+      return { fill: '10B981', fontColor: 'FFFFFF', bold: true };
+    }
+    if (percentage >= 60) {
+      // 60–79% Good (Blue)
+      return { fill: '3B82F6', fontColor: 'FFFFFF', bold: true };
+    }
+    if (percentage >= 45) {
+      // 45–59% Attention (Amber)
+      return { fill: 'FBBF24', fontColor: '1E293B', bold: true };
+    }
+    // <45% Critical (Rose)
+    return { fill: 'F43F5E', fontColor: 'FFFFFF', bold: true };
+  };
+
+  const handleExportExcel = async () => {
     if (!classResult) return;
-    
-    const data = classResult.studentRows.map((row: any) => {
-      const rowData: any = {
-        'Rank': row.rank || '—',
-        'Index No': row.student.indexNumber,
-        'Candidate Name': row.student.fullName,
-      };
-      
-      classResult.subjects.forEach((sub: any) => {
-        const sc = row.subjectResults[sub.id];
-        rowData[sub.code] = sc ? sc.percentage : '—';
-        rowData[`${sub.code} Grade`] = sc ? sc.grade : '—';
-      });
-      
-      rowData['Total'] = row.totalRaw !== null ? row.totalRaw : '—';
-      rowData['Average'] = row.average !== null ? row.average : '—';
-      rowData['Overall Grade'] = row.overallGrade || '—';
-      rowData['Aggregate'] = row.aggregate !== null ? row.aggregate : '—';
-      rowData['Passed'] = row.passedCount;
-      
-      return rowData;
+
+    // Dynamically load ExcelJS for rich styling support
+    const ExcelJS = (await import('exceljs')).default || (await import('exceljs'));
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Class Results');
+
+    // 1. Sort students automatically from first to last (ranked 1, 2, 3...)
+    // Unranked students (e.g. missing core subjects) placed at the end sorted by average
+    const sortedRows = [...classResult.studentRows].sort((a: any, b: any) => {
+      const rankA = a.rank !== null && a.rank !== undefined ? Number(a.rank) : Infinity;
+      const rankB = b.rank !== null && b.rank !== undefined ? Number(b.rank) : Infinity;
+      if (rankA !== rankB) {
+        return rankA - rankB;
+      }
+      // Secondary fallback: by average desc
+      return (b.average || 0) - (a.average || 0);
     });
 
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Class Results");
-    
-    XLSX.writeFile(workbook, `${classResult.examination?.name}_Results.xlsx`);
+    // 2. Build column definitions
+    const columns: any[] = [
+      { header: 'Rank', key: 'rank', width: 10 },
+      { header: 'Index No', key: 'indexNumber', width: 16 },
+      { header: 'Candidate Name', key: 'candidateName', width: 28 },
+    ];
+
+    classResult.subjects.forEach((sub: any) => {
+      columns.push({ header: `${sub.code} (%)`, key: `score_${sub.id}`, width: 14 });
+      columns.push({ header: `${sub.code} Grade`, key: `grade_${sub.id}`, width: 14 });
+    });
+
+    columns.push(
+      { header: 'Total', key: 'totalRaw', width: 12 },
+      { header: 'Average (%)', key: 'average', width: 14 },
+      { header: 'Overall Grade', key: 'overallGrade', width: 14 },
+      { header: 'Aggregate', key: 'aggregate', width: 12 },
+      { header: 'Passed', key: 'passed', width: 10 }
+    );
+
+    worksheet.columns = columns;
+
+    // Style Header Row
+    const headerRow = worksheet.getRow(1);
+    headerRow.height = 26;
+    headerRow.eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: 'FFFFFF' }, size: 11 };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: '1E293B' }, // Slate 800
+      };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'CBD5E1' } },
+        left: { style: 'thin', color: { argb: 'CBD5E1' } },
+        bottom: { style: 'medium', color: { argb: '94A3B8' } },
+        right: { style: 'thin', color: { argb: 'CBD5E1' } },
+      };
+    });
+
+    // 3. Populate rows with data and apply conditional score formatting
+    sortedRows.forEach((row: any) => {
+      const rowData: Record<string, any> = {
+        rank: row.rank ? row.rank : '—',
+        indexNumber: row.student.indexNumber,
+        candidateName: row.student.fullName,
+      };
+
+      classResult.subjects.forEach((sub: any) => {
+        const sc = row.subjectResults[sub.id];
+        rowData[`score_${sub.id}`] = sc && sc.percentage !== null && sc.percentage !== undefined ? sc.percentage : '—';
+        rowData[`grade_${sub.id}`] = sc ? sc.grade : '—';
+      });
+
+      rowData.totalRaw = row.totalRaw !== null && row.totalRaw !== undefined ? row.totalRaw : '—';
+      rowData.average = row.average !== null && row.average !== undefined ? row.average : '—';
+      rowData.overallGrade = row.overallGrade || '—';
+      rowData.aggregate = row.aggregate !== null && row.aggregate !== undefined ? row.aggregate : '—';
+      rowData.passed = row.passedCount !== undefined ? row.passedCount : '—';
+
+      const addedRow = worksheet.addRow(rowData);
+      addedRow.height = 22;
+
+      // Base borders and alignment
+      addedRow.eachCell((cell) => {
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'E2E8F0' } },
+          left: { style: 'thin', color: { argb: 'E2E8F0' } },
+          bottom: { style: 'thin', color: { argb: 'E2E8F0' } },
+          right: { style: 'thin', color: { argb: 'E2E8F0' } },
+        };
+      });
+
+      // Align Candidate Name to left
+      const nameCell = addedRow.getCell('candidateName');
+      nameCell.alignment = { vertical: 'middle', horizontal: 'left' };
+
+      // Apply Performance Heatmap colors to subject score cells
+      classResult.subjects.forEach((sub: any) => {
+        const sc = row.subjectResults[sub.id];
+        if (sc && sc.percentage !== null && sc.percentage !== undefined) {
+          const scoreCell = addedRow.getCell(`score_${sub.id}`);
+          const band = getScoreBandStyle(Number(sc.percentage));
+          if (band) {
+            scoreCell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: band.fill },
+            };
+            scoreCell.font = {
+              bold: band.bold,
+              color: { argb: band.fontColor },
+            };
+          }
+        }
+      });
+
+      // Also color the Average (%) cell using the same performance bands
+      if (row.average !== null && row.average !== undefined) {
+        const avgCell = addedRow.getCell('average');
+        const avgBand = getScoreBandStyle(Number(row.average));
+        if (avgBand) {
+          avgCell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: avgBand.fill },
+          };
+          avgCell.font = {
+            bold: avgBand.bold,
+            color: { argb: avgBand.fontColor },
+          };
+        }
+      }
+    });
+
+    // 4. Auto-fit column widths so no values are clipped, hidden, or overlapping
+    worksheet.columns.forEach((column: any) => {
+      let maxLen = 0;
+      if (column.header) {
+        maxLen = String(column.header).length;
+      }
+      column.eachCell({ includeEmpty: false }, (cell: any) => {
+        const val = cell.value;
+        if (val !== null && val !== undefined) {
+          const str = typeof val === 'object' && val.text ? String(val.text) : String(val);
+          if (str.length > maxLen) {
+            maxLen = str.length;
+          }
+        }
+      });
+      // Add comfortable padding (+5 chars) and ensure minimum readable width
+      column.width = Math.max(maxLen + 5, 12);
+    });
+
+    // Freeze header row so column names stay visible on scroll
+    worksheet.views = [{ state: 'frozen', ySplit: 1 }];
+
+    // Write file to user browser
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `${classResult.examination?.name || 'Class'}_Master_Results.xlsx`;
+    anchor.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const handleDownloadClassReports = async () => {
