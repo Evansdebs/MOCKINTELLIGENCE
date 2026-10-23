@@ -234,22 +234,16 @@ export const MockIntelligencePage: React.FC = () => {
   };
 
   const subjectColors = [
-    '#6b9affff', // Royal Blue
-    '#e35103ff', // Bright Orange
-    '#051511ff', // Emerald Green
-    '#5104d7ff', // Vivid Purple
-    '#c2002aff', // Crimson Rose
-    '#0284c7', // Sky / Cyan Blue
-    '#ffc380ff', // Warm Amber / Ochre
-    '#059669', // Teal Green
+    '#ef4444', // Red
+    '#3b82f6', // Blue
+    '#eab308', // Yellow
+    '#22c55e', // Green
+    '#0f172a', // Black
+    '#a855f7', // Purple
     '#ec4899', // Pink
-    '#4f46e5', // Deep Indigo
-    '#84cc16', // Lime
-    '#084825ff', // Deep Cyan
-    '#b45309', // Dark Bronze / Brown
-    '#e30000ff', // Periwinkle
-    '#14b8a6', // Turquoise
-    '#841ce4ff', // Electric Violet
+    '#1e293b', // Blue-black (Midnight Navy)
+    '#f97316', // Orange
+    '#fdba74', // Peach
   ];
 
   const getHeatmapColor = (percentage: number | null) => {
