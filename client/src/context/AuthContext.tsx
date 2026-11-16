@@ -64,27 +64,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [token]);
 
   const login = async (credentials: { username: string; password: string }) => {
-    const trimmedUser = credentials.username.trim();
-    // 1. Attempt Supabase Auth login only if input looks like an email address
-    if (trimmedUser.includes('@')) {
+    const rawInput = credentials.username.trim();
+    let authEmail = rawInput;
+
+    // If identifier doesn't look like an email, attempt to resolve username to staff email
+    if (!authEmail.includes('@')) {
       try {
-        const { data: supaData, error: supaError } = await supabase.auth.signInWithPassword({
-          email: trimmedUser,
-          password: credentials.password,
-        });
-
-        if (!supaError && supaData?.session?.access_token) {
-          const supaToken = supaData.session.access_token;
-          localStorage.setItem('mock_intel_token', supaToken);
-          setToken(supaToken);
-
-          const profileRes = await api.me();
-          setUser(profileRes.user);
-          localStorage.setItem('mock_intel_user', JSON.stringify(profileRes.user));
-          return;
+        const resolved = await api.resolveIdentifier(authEmail);
+        if (resolved?.email) {
+          authEmail = resolved.email;
         }
       } catch (e) {
-        // Proceed to backend login fallback if Supabase Auth login fails
+        // Fallback to legacy endpoint if identifier cannot be resolved
+      }
+    }
+
+    // 1. Attempt Supabase Auth login if an email was provided or resolved
+    if (authEmail.includes('@')) {
+      const { data: supaData, error: supaError } = await supabase.auth.signInWithPassword({
+        email: authEmail,
+        password: credentials.password,
+      });
+
+      if (supaError) {
+        throw new Error(supaError.message || 'Invalid login credentials.');
+      }
+
+      if (supaData?.session?.access_token) {
+        const supaToken = supaData.session.access_token;
+        localStorage.setItem('mock_intel_token', supaToken);
+        setToken(supaToken);
+
+        const profileRes = await api.me();
+        setUser(profileRes.user);
+        localStorage.setItem('mock_intel_user', JSON.stringify(profileRes.user));
+        return;
       }
     }
 

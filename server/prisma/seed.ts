@@ -65,11 +65,12 @@ async function main() {
   const admin = await prisma.user.create({
     data: {
       username: 'admin',
-      email: 'admin@school.edu',
+      email: 'admin@onereal.com',
       name: 'System Admin',
       passwordHash: adminPassword,
       role: 'ADMIN',
       status: 'Active',
+      authUserId: 'a9d340f5-b113-4bbd-ae1f-585215143760',
     },
   });
 

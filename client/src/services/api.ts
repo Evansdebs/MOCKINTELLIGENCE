@@ -180,6 +180,11 @@ export async function request<T>(
 
 export const api = {
   // Auth
+  resolveIdentifier: (identifier: string) =>
+    request<{ email: string }>('/auth/resolve-identifier', {
+      method: 'POST',
+      body: JSON.stringify({ identifier }),
+    }),
   login: (credentials: any) => request<any>('/auth/login', { method: 'POST', body: JSON.stringify(credentials) }),
   studentLogin: (credentials: any) => request<any>('/auth/student-login', { method: 'POST', body: JSON.stringify(credentials) }),
   me: () => request<any>('/auth/me'),

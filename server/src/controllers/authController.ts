@@ -181,3 +181,35 @@ export async function me(req: AuthRequest, res: Response): Promise<void> {
     res.status(500).json({ error: 'Failed to retrieve profile.' });
   }
 }
+
+export async function resolveIdentifier(req: Request, res: Response): Promise<void> {
+  try {
+    const { identifier } = req.body;
+    if (!identifier) {
+      res.status(400).json({ error: 'Identifier is required.' });
+      return;
+    }
+    const cleanId = String(identifier).trim();
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { username: { equals: cleanId, mode: 'insensitive' } },
+          { email: { equals: cleanId.toLowerCase(), mode: 'insensitive' } },
+        ],
+      },
+      select: {
+        email: true,
+      },
+    });
+
+    if (!user) {
+      res.status(404).json({ error: 'User not found.' });
+      return;
+    }
+
+    res.json({ email: user.email });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to resolve user identifier.' });
+  }
+}
+

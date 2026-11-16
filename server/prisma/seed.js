@@ -64,11 +64,12 @@ async function main() {
     const admin = await prisma.user.create({
         data: {
             username: 'admin',
-            email: 'admin@achimota.edu.gh',
+            email: 'admin@onereal.com',
             name: 'Mr. Emmanuel Osei (Admin)',
             passwordHash: adminPassword,
             role: 'ADMIN',
             status: 'Active',
+            authUserId: 'a9d340f5-b113-4bbd-ae1f-585215143760',
         },
     });
     const teacher = await prisma.user.create({

@@ -26,6 +26,7 @@ const router = Router();
 // ==================== AUTHENTICATION ====================
 router.post('/auth/login', authController.login);
 router.post('/auth/student-login', authController.studentLogin);
+router.post('/auth/resolve-identifier', authController.resolveIdentifier);
 router.get('/auth/me', authenticate, authController.me);
 
 // ==================== SCHOOL SETTINGS & GRADES ====================
