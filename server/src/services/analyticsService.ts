@@ -5,7 +5,7 @@ export class AnalyticsService {
   /**
    * Overall dashboard KPIs and class trend
    */
-  static async getOverviewKPIs(classFilter?: string, academicYear?: string) {
+  static async getOverviewKPIs(classFilter?: string, academicYear?: string, examinationId?: string) {
     const settings = await prisma.schoolSettings.findFirst() || {
       passThreshold: 50.0,
       stableThreshold: 1.0,
@@ -21,9 +21,16 @@ export class AnalyticsService {
     }
     const totalStudents = await prisma.student.count({ where: studentWhere });
 
+    const examWhere: any = {};
+    if (academicYear && academicYear !== 'all') {
+      examWhere.academicYear = academicYear;
+    } else if (settings.academicYear) {
+      examWhere.academicYear = settings.academicYear;
+    }
+
     // Completed or active examinations
-    const exams = await prisma.examination.findMany({
-      where: { academicYear: year },
+    let exams = await prisma.examination.findMany({
+      where: examWhere,
       orderBy: { sequenceOrder: 'asc' },
       include: {
         scores: {
@@ -34,6 +41,24 @@ export class AnalyticsService {
         },
       },
     });
+
+    // Fallback: If strict academicYear filter returns fewer than all exams in system, include all exams so sequential mock comparison is never blocked
+    if (exams.length <= 1 && (!academicYear || academicYear === 'all')) {
+      const allExams = await prisma.examination.findMany({
+        orderBy: { sequenceOrder: 'asc' },
+        include: {
+          scores: {
+            where: {
+              rawScore: { not: null },
+              student: studentWhere,
+            },
+          },
+        },
+      });
+      if (allExams.length > exams.length) {
+        exams = allExams;
+      }
+    }
 
     const completedMocksCount = exams.filter(e => e.status === 'Completed' || e.status === 'Locked').length;
 
@@ -60,21 +85,29 @@ export class AnalyticsService {
       };
     });
 
-    // Comparison between latest two mocks
+    // Determine target exam and comparison exam
+    let targetExam = exams.length > 0 ? exams[exams.length - 1] : null;
+    let prevExam = exams.length >= 2 ? exams[exams.length - 2] : null;
+
+    if (examinationId && examinationId !== 'all') {
+      const idx = exams.findIndex(e => e.id === examinationId);
+      if (idx !== -1) {
+        targetExam = exams[idx];
+        prevExam = idx > 0 ? exams[idx - 1] : null;
+      }
+    }
+
     let improvingCount = 0;
     let decliningCount = 0;
     let stableCount = 0;
 
-    if (exams.length >= 2) {
-      const latestExam = exams[exams.length - 1];
-      const prevExam = exams[exams.length - 2];
-
+    if (targetExam && prevExam) {
       const students = await prisma.student.findMany({
         where: studentWhere,
         include: {
           scores: {
             where: {
-              examinationId: { in: [latestExam.id, prevExam.id] },
+              examinationId: { in: [targetExam.id, prevExam.id] },
               percentage: { not: null },
             },
           },
@@ -82,13 +115,13 @@ export class AnalyticsService {
       });
 
       for (const st of students) {
-        const sLatest = st.scores.filter(s => s.examinationId === latestExam.id);
+        const sTarget = st.scores.filter(s => s.examinationId === targetExam.id);
         const sPrev = st.scores.filter(s => s.examinationId === prevExam.id);
 
-        if (sLatest.length > 0 && sPrev.length > 0) {
-          const avgLatest = sLatest.reduce((sum, s) => sum + (s.percentage || 0), 0) / sLatest.length;
+        if (sTarget.length > 0 && sPrev.length > 0) {
+          const avgTarget = sTarget.reduce((sum, s) => sum + (s.percentage || 0), 0) / sTarget.length;
           const avgPrev = sPrev.reduce((sum, s) => sum + (s.percentage || 0), 0) / sPrev.length;
-          const diff = avgLatest - avgPrev;
+          const diff = avgTarget - avgPrev;
 
           const status = determineChangeStatus(diff, settings.stableThreshold);
           if (status === 'Improving') improvingCount++;
@@ -98,15 +131,18 @@ export class AnalyticsService {
       }
     }
 
-    const latestAvg = examTrends.length > 0 ? examTrends[examTrends.length - 1].average : 0;
-    const latestPassRate = examTrends.length > 0 ? examTrends[examTrends.length - 1].passRate : 0;
+    const targetTrend = targetExam ? examTrends.find(t => t.examId === targetExam.id) : null;
+    const currentAvg = targetTrend ? targetTrend.average : (examTrends.length > 0 ? examTrends[examTrends.length - 1].average : 0);
+    const currentPassRate = targetTrend ? targetTrend.passRate : (examTrends.length > 0 ? examTrends[examTrends.length - 1].passRate : 0);
 
     return {
       totalStudents,
       completedMocksCount,
       totalMocksCount: exams.length,
-      latestAverage: latestAvg,
-      latestPassRate: latestPassRate,
+      selectedExamId: targetExam?.id,
+      selectedExamName: targetExam?.name,
+      latestAverage: currentAvg,
+      latestPassRate: currentPassRate,
       improvingCount,
       decliningCount,
       stableCount,
@@ -121,10 +157,26 @@ export class AnalyticsService {
     const settings = await prisma.schoolSettings.findFirst();
     const year = academicYear || settings?.academicYear || '2025/2026';
 
-    const exams = await prisma.examination.findMany({
-      where: { academicYear: year },
+    const examWhere: any = {};
+    if (academicYear && academicYear !== 'all') {
+      examWhere.academicYear = academicYear;
+    } else if (settings?.academicYear) {
+      examWhere.academicYear = settings.academicYear;
+    }
+
+    let exams = await prisma.examination.findMany({
+      where: examWhere,
       orderBy: { sequenceOrder: 'asc' },
     });
+
+    if (exams.length <= 1 && (!academicYear || academicYear === 'all')) {
+      const allExams = await prisma.examination.findMany({
+        orderBy: { sequenceOrder: 'asc' },
+      });
+      if (allExams.length > exams.length) {
+        exams = allExams;
+      }
+    }
 
     const subjects = await prisma.subject.findMany({
       where: { status: 'Active' },
@@ -217,10 +269,26 @@ export class AnalyticsService {
     const target = settings?.passThreshold || 75.0; // Assume target is pass threshold or fallback to 75
     const year = academicYear || settings?.academicYear || '2025/2026';
 
-    const exams = await prisma.examination.findMany({
-      where: { academicYear: year },
+    const examWhere: any = {};
+    if (academicYear && academicYear !== 'all') {
+      examWhere.academicYear = academicYear;
+    } else if (settings?.academicYear) {
+      examWhere.academicYear = settings.academicYear;
+    }
+
+    let exams = await prisma.examination.findMany({
+      where: examWhere,
       orderBy: { sequenceOrder: 'asc' },
     });
+
+    if (exams.length <= 1 && (!academicYear || academicYear === 'all')) {
+      const allExams = await prisma.examination.findMany({
+        orderBy: { sequenceOrder: 'asc' },
+      });
+      if (allExams.length > exams.length) {
+        exams = allExams;
+      }
+    }
 
     const studentWhere: any = { status: 'Active' };
     if (classFilter && classFilter !== 'all') {
@@ -808,7 +876,7 @@ export class AnalyticsService {
   /**
    * Weak Area Analysis & Configurable Academic Alerts
    */
-  static async getWeakAreasAndAlerts(classFilter?: string) {
+  static async getWeakAreasAndAlerts(classFilter?: string, examinationId?: string) {
     const settings = await prisma.schoolSettings.findFirst() || {
       passThreshold: 50.0,
       stableThreshold: 1.0,
@@ -834,15 +902,19 @@ export class AnalyticsService {
       orderBy: { order: 'asc' },
     });
 
-    const latestExam = exams.length > 0 ? exams[exams.length - 1] : null;
+    let targetExam = exams.length > 0 ? exams[exams.length - 1] : null;
+    if (examinationId && examinationId !== 'all') {
+      const found = exams.find(e => e.id === examinationId);
+      if (found) targetExam = found;
+    }
 
-    // 1. Subjects below target in latest mock
+    // 1. Subjects below target in selected mock
     const subjectsBelowTarget = [];
-    if (latestExam) {
+    if (targetExam) {
       for (const sub of subjects) {
         const scores = await prisma.score.findMany({
           where: {
-            examinationId: latestExam.id,
+            examinationId: targetExam.id,
             subjectId: sub.id,
             percentage: { not: null },
             student: studentWhere,

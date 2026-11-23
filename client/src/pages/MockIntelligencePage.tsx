@@ -67,6 +67,8 @@ export const MockIntelligencePage: React.FC = () => {
 
   const [classFilter, setClassFilter] = useState('all');
   const [classesList, setClassesList] = useState<any[]>([]);
+  const [examinationsList, setExaminationsList] = useState<any[]>([]);
+  const [selectedExamId, setSelectedExamId] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [tabLoading, setTabLoading] = useState(false);
 
@@ -93,10 +95,10 @@ export const MockIntelligencePage: React.FC = () => {
     init();
   }, []);
 
-  // When active tab or class filter changes, promptly load that tab's data
+  // When active tab, class filter, or selected mock changes, promptly load that tab's data
   useEffect(() => {
-    loadTabData(activeTab, classFilter);
-  }, [activeTab, classFilter]);
+    loadTabData(activeTab, classFilter, selectedExamId);
+  }, [activeTab, classFilter, selectedExamId]);
 
   const handleClassChange = (newClass: string) => {
     setClassFilter(newClass);
@@ -108,6 +110,13 @@ export const MockIntelligencePage: React.FC = () => {
     setComparisonResults(null);
   };
 
+  const handleExamChange = (newExamId: string) => {
+    setSelectedExamId(newExamId);
+    setOverviewKPIs(null);
+    setHeatmapData(null);
+    setWeakAreasData(null);
+  };
+
   const init = async () => {
     try {
       const [studentsRes, examsRes] = await Promise.all([
@@ -117,6 +126,8 @@ export const MockIntelligencePage: React.FC = () => {
       const sts = studentsRes.students || [];
       setAllStudents(sts);
       if (studentsRes?.classes) setClassesList(studentsRes.classes);
+      const exams = examsRes?.examinations || [];
+      setExaminationsList(exams);
 
       // Pre-select first 3 students for comparison
       if (sts.length >= 3) {
@@ -139,11 +150,13 @@ export const MockIntelligencePage: React.FC = () => {
     }, 250);
   };
 
-  const loadTabData = async (tab = activeTab, cls = classFilter) => {
+  const loadTabData = async (tab = activeTab, cls = classFilter, examId = selectedExamId) => {
     try {
       if (tab === 'overview' && !overviewKPIs) {
         setTabLoading(true);
-        const kpis = await api.getOverview({ class: cls });
+        const params: Record<string, string> = { class: cls };
+        if (examId !== 'all') params.examinationId = examId;
+        const kpis = await api.getOverview(params);
         setOverviewKPIs(kpis);
         prefetchRemainingTabs(cls, kpis);
       } else if (tab === 'subjects' && !subjectData) {
@@ -163,19 +176,21 @@ export const MockIntelligencePage: React.FC = () => {
         setMockComparison(mocks);
       } else if (tab === 'heatmap' && !heatmapData) {
         setTabLoading(true);
-        let latestExamId = overviewKPIs?.examTrends?.[overviewKPIs.examTrends.length - 1]?.examId;
-        if (!latestExamId) {
+        let targetExamId = examId !== 'all' ? examId : (overviewKPIs?.examTrends?.[overviewKPIs.examTrends.length - 1]?.examId);
+        if (!targetExamId) {
           const kpis = await api.getOverview({ class: cls });
           setOverviewKPIs(kpis);
-          latestExamId = kpis?.examTrends?.[kpis.examTrends.length - 1]?.examId;
+          targetExamId = examId !== 'all' ? examId : (kpis?.examTrends?.[kpis.examTrends.length - 1]?.examId || examinationsList[examinationsList.length - 1]?.id);
         }
-        if (latestExamId) {
-          const heat = await api.getHeatmap({ examinationId: latestExamId, classId: cls });
+        if (targetExamId) {
+          const heat = await api.getHeatmap({ examinationId: targetExamId, classId: cls });
           setHeatmapData(heat);
         }
       } else if (tab === 'alerts' && !weakAreasData) {
         setTabLoading(true);
-        const weak = await api.getWeakAreasAndAlerts({ class: cls });
+        const alertParams: Record<string, string> = { class: cls };
+        if (examId !== 'all') alertParams.examinationId = examId;
+        const weak = await api.getWeakAreasAndAlerts(alertParams);
         setWeakAreasData(weak);
       } else if (tab === 'students' && selectedStudentIds.length > 0 && !comparisonResults) {
         setTabLoading(true);
@@ -271,21 +286,41 @@ export const MockIntelligencePage: React.FC = () => {
           </p>
         </div>
 
-        {/* Global Class Filter */}
-        <div className="flex items-center gap-2 text-xs">
-          <span className="font-semibold text-slate-500">Cohort Class:</span>
-          <select
-            value={classFilter}
-            onChange={(e) => handleClassChange(e.target.value)}
-            className="px-3.5 py-1.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">All Basic 9 Classes</option>
-            {classesList.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+        {/* Global Controls Filter Bar */}
+        <div className="flex flex-wrap items-center gap-3 text-xs">
+          {/* Cohort Class Filter */}
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-slate-500">Cohort Class:</span>
+            <select
+              value={classFilter}
+              onChange={(e) => handleClassChange(e.target.value)}
+              className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Basic 9 Classes</option>
+              {classesList.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Mock Examination Filter */}
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-slate-500">Mock Examination:</span>
+            <select
+              value={selectedExamId}
+              onChange={(e) => handleExamChange(e.target.value)}
+              className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Mocks (Timeline & Comparison)</option>
+              {examinationsList.map((exam) => (
+                <option key={exam.id} value={exam.id}>
+                  {exam.name} {exam.sequenceOrder ? `(Mock ${exam.sequenceOrder})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -364,6 +399,33 @@ export const MockIntelligencePage: React.FC = () => {
           <TabSkeleton title="Calculating Overall Class Trends & KPIs..." />
         ) : (
         <div className="space-y-6">
+          {/* Active Mock Focus Banner */}
+          {selectedExamId !== 'all' && (
+            <div className="p-3.5 bg-blue-50/90 border border-blue-200/90 rounded-2xl flex flex-wrap items-center justify-between gap-2 text-xs text-blue-900 shadow-sm">
+              <div className="flex items-center gap-2.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse shrink-0" />
+                <span>
+                  Filtering metrics for: <strong className="font-extrabold text-blue-950">{overviewKPIs?.selectedExamName || examinationsList.find(e => e.id === selectedExamId)?.name}</strong>
+                  {overviewKPIs?.latestAverage !== undefined && (
+                    <span className="ml-2 px-2 py-0.5 rounded-md bg-blue-100/80 font-bold text-blue-800">
+                      Mean: {overviewKPIs.latestAverage}%
+                    </span>
+                  )}
+                  {overviewKPIs?.latestPassRate !== undefined && (
+                    <span className="ml-1.5 px-2 py-0.5 rounded-md bg-emerald-100 font-bold text-emerald-800">
+                      Pass: {overviewKPIs.latestPassRate}%
+                    </span>
+                  )}
+                </span>
+              </div>
+              <button
+                onClick={() => handleExamChange('all')}
+                className="text-[11px] font-bold text-blue-700 hover:text-blue-900 hover:underline px-2.5 py-1 rounded-lg bg-white/70 border border-blue-200 transition-colors"
+              >
+                View All Mocks
+              </button>
+            </div>
+          )}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Overall Class Average Progression */}
             <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm relative">
@@ -962,10 +1024,28 @@ export const MockIntelligencePage: React.FC = () => {
         <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
             <div>
-              <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
-                Cohort Performance Heatmap (Section 32)
-              </h2>
-              <p className="text-xs text-slate-500">
+              <div className="flex items-center gap-3">
+                <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
+                  Cohort Performance Heatmap (Section 32)
+                </h2>
+                {examinationsList.length > 0 && (
+                  <div className="flex items-center gap-1.5 bg-slate-100/90 px-2.5 py-1 rounded-xl border border-slate-200">
+                    <span className="text-[11px] font-bold text-slate-500">Exam:</span>
+                    <select
+                      value={selectedExamId !== 'all' ? selectedExamId : (examinationsList[examinationsList.length - 1]?.id || '')}
+                      onChange={(e) => handleExamChange(e.target.value)}
+                      className="bg-transparent text-xs font-black text-blue-700 focus:outline-none cursor-pointer"
+                    >
+                      {examinationsList.map((exam) => (
+                        <option key={exam.id} value={exam.id}>
+                          {exam.name} {exam.sequenceOrder ? `(Mock ${exam.sequenceOrder})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
                 Visual matrix highlighting mastery and deficits across candidates and curriculum subjects
               </p>
             </div>

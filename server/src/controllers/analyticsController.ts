@@ -26,12 +26,13 @@ async function getOrCompute<T>(key: string, computeFn: () => Promise<T>): Promis
 
 export async function getOverview(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { class: classFilter, academicYear } = req.query;
-    const key = `overview:${classFilter || 'all'}:${academicYear || 'default'}`;
+    const { class: classFilter, academicYear, examinationId } = req.query;
+    const key = `overview:${classFilter || 'all'}:${academicYear || 'default'}:${examinationId || 'all'}`;
     const data = await getOrCompute(key, () =>
       AnalyticsService.getOverviewKPIs(
         classFilter ? String(classFilter) : undefined,
-        academicYear ? String(academicYear) : undefined
+        academicYear ? String(academicYear) : undefined,
+        examinationId ? String(examinationId) : undefined
       )
     );
     res.json(data);
@@ -142,11 +143,12 @@ export async function compareStudents(req: AuthRequest, res: Response): Promise<
 
 export async function getWeakAreasAndAlerts(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { class: classFilter } = req.query;
-    const key = `weakAreas:${classFilter || 'all'}`;
+    const { class: classFilter, examinationId } = req.query;
+    const key = `weakAreas:${classFilter || 'all'}:${examinationId || 'all'}`;
     const data = await getOrCompute(key, () =>
       AnalyticsService.getWeakAreasAndAlerts(
-        classFilter ? String(classFilter) : undefined
+        classFilter ? String(classFilter) : undefined,
+        examinationId ? String(examinationId) : undefined
       )
     );
     res.json(data);

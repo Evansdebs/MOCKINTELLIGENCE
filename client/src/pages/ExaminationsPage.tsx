@@ -133,16 +133,20 @@ export const ExaminationsPage: React.FC = () => {
   const loadData = async (silent = false) => {
     try {
       if (!silent) setLoading(true);
-      const [examRes, subRes, classRes] = await Promise.all([
+      const [examRes, subRes, classRes, settingsRes] = await Promise.all([
         api.getExaminations(),
         api.getSubjects(),
         api.getClassRooms(),
+        api.getPublicSettings().catch(() => null),
       ]);
       const exams = examRes.examinations || [];
       setExaminations(exams);
       setSubjects(subRes.subjects || []);
       const classes = Array.isArray(classRes) ? classRes : (classRes?.classes || []);
       setClassesList(classes);
+      if (settingsRes?.settings?.academicYear) {
+        setFormYear(settingsRes.settings.academicYear);
+      }
       if (selectedSubjectIds.length === 0 && subRes.subjects) {
         setSelectedSubjectIds(subRes.subjects.map((s: Subject) => s.id));
       }

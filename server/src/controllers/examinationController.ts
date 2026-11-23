@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { prisma } from '../prisma';
 import { AuthRequest, logAudit } from '../middleware/auth';
+import { clearAnalyticsCache } from './analyticsController';
 
 export async function getExaminations(req: AuthRequest, res: Response): Promise<void> {
   try {
@@ -207,6 +208,7 @@ export async function createExamination(req: AuthRequest, res: Response): Promis
       ipAddress: req.ip,
     });
 
+    clearAnalyticsCache();
     res.status(201).json({ examination, message: 'Examination created successfully.' });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to create examination.' });
@@ -268,6 +270,7 @@ export async function updateExamination(req: AuthRequest, res: Response): Promis
       ipAddress: req.ip,
     });
 
+    clearAnalyticsCache();
     res.json({ examination: updated, message: 'Examination updated successfully.' });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to update examination.' });
@@ -383,6 +386,7 @@ export async function completeExamination(req: AuthRequest, res: Response): Prom
       ipAddress: req.ip,
     });
 
+    clearAnalyticsCache();
     res.json({
       examination: updated,
       message: `${updated.name} has been marked as Completed. All results are now finalised.`,
@@ -495,6 +499,7 @@ export async function deleteExamination(req: AuthRequest, res: Response): Promis
       ipAddress: req.ip,
     });
 
+    clearAnalyticsCache();
     res.json({ message: 'Examination deleted successfully.' });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to delete examination.' });

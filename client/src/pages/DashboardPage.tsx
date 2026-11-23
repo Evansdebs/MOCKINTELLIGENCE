@@ -212,7 +212,7 @@ export const DashboardPage: React.FC = () => {
           </div>
 
           <div className="text-xs text-slate-400">
-            Academic Year: <span className="text-white font-semibold">2025/2026</span>
+            Academic Year: <span className="text-white font-semibold">{settings?.academicYear || '2026/2027'}</span>
           </div>
         </div>
       </div>
