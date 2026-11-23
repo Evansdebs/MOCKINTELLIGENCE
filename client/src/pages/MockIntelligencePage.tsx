@@ -113,8 +113,11 @@ export const MockIntelligencePage: React.FC = () => {
   const handleExamChange = (newExamId: string) => {
     setSelectedExamId(newExamId);
     setOverviewKPIs(null);
+    setSubjectData(null);
+    setMockComparison(null);
     setHeatmapData(null);
     setWeakAreasData(null);
+    setComparisonResults(null);
   };
 
   const init = async () => {
@@ -138,12 +141,15 @@ export const MockIntelligencePage: React.FC = () => {
     }
   };
 
-  const prefetchRemainingTabs = (cls: string, kpis: any) => {
+  const prefetchRemainingTabs = (cls: string, kpis: any, examId: string) => {
     setTimeout(() => {
-      api.prefetch(`/analytics/subject-trends?class=${cls}`);
-      api.prefetch(`/analytics/mock-comparison?class=${cls}`);
-      api.prefetch(`/analytics/weak-areas?class=${cls}`);
-      if (kpis?.examTrends?.length > 0) {
+      const examParam = examId !== 'all' ? `&examinationId=${examId}` : '';
+      api.prefetch(`/analytics/subject-trends?class=${cls}${examParam}`);
+      api.prefetch(`/analytics/mock-comparison?class=${cls}${examParam}`);
+      api.prefetch(`/analytics/weak-areas?class=${cls}${examParam}`);
+      if (examId !== 'all') {
+        api.prefetch(`/analytics/heatmap?examinationId=${examId}&classId=${cls}`);
+      } else if (kpis?.examTrends?.length > 0) {
         const latestExamId = kpis.examTrends[kpis.examTrends.length - 1].examId;
         api.prefetch(`/analytics/heatmap?examinationId=${latestExamId}&classId=${cls}`);
       }
@@ -158,10 +164,12 @@ export const MockIntelligencePage: React.FC = () => {
         if (examId !== 'all') params.examinationId = examId;
         const kpis = await api.getOverview(params);
         setOverviewKPIs(kpis);
-        prefetchRemainingTabs(cls, kpis);
+        prefetchRemainingTabs(cls, kpis, examId);
       } else if (tab === 'subjects' && !subjectData) {
         setTabLoading(true);
-        const subs = await api.getSubjectTrends({ class: cls });
+        const params: Record<string, string> = { class: cls };
+        if (examId !== 'all') params.examinationId = examId;
+        const subs = await api.getSubjectTrends(params);
         setSubjectData(subs);
         if (subs?.subjects) {
           const vis: Record<string, boolean> = {};
@@ -172,13 +180,15 @@ export const MockIntelligencePage: React.FC = () => {
         }
       } else if (tab === 'comparison' && !mockComparison) {
         setTabLoading(true);
-        const mocks = await api.getMockComparison({ class: cls });
+        const params: Record<string, string> = { class: cls };
+        if (examId !== 'all') params.examinationId = examId;
+        const mocks = await api.getMockComparison(params);
         setMockComparison(mocks);
       } else if (tab === 'heatmap' && !heatmapData) {
         setTabLoading(true);
         let targetExamId = examId !== 'all' ? examId : (overviewKPIs?.examTrends?.[overviewKPIs.examTrends.length - 1]?.examId);
         if (!targetExamId) {
-          const kpis = await api.getOverview({ class: cls });
+          const kpis = await api.getOverview(examId !== 'all' ? { class: cls, examinationId: examId } : { class: cls });
           setOverviewKPIs(kpis);
           targetExamId = examId !== 'all' ? examId : (kpis?.examTrends?.[kpis.examTrends.length - 1]?.examId || examinationsList[examinationsList.length - 1]?.id);
         }
@@ -194,7 +204,8 @@ export const MockIntelligencePage: React.FC = () => {
         setWeakAreasData(weak);
       } else if (tab === 'students' && selectedStudentIds.length > 0 && !comparisonResults) {
         setTabLoading(true);
-        const res = await api.compareStudents(selectedStudentIds);
+        const examArg = examId !== 'all' ? examId : undefined;
+        const res = await api.compareStudents(selectedStudentIds, examArg);
         setComparisonResults(res);
       }
     } catch (err) {
@@ -209,7 +220,8 @@ export const MockIntelligencePage: React.FC = () => {
     if (selectedStudentIds.length === 0) return;
     try {
       setTabLoading(true);
-      const res = await api.compareStudents(selectedStudentIds);
+      const examArg = selectedExamId !== 'all' ? selectedExamId : undefined;
+      const res = await api.compareStudents(selectedStudentIds, examArg);
       setComparisonResults(res);
     } catch (err) {
       console.error(err);
@@ -585,6 +597,23 @@ export const MockIntelligencePage: React.FC = () => {
           <TabSkeleton title="Calculating Longitudinal Subject Multi-Series Trends..." />
         ) : (
         <div className="space-y-6">
+          {/* Active Mock Focus Banner */}
+          {selectedExamId !== 'all' && (
+            <div className="p-3.5 bg-blue-50/90 border border-blue-200/90 rounded-2xl flex flex-wrap items-center justify-between gap-2 text-xs text-blue-900 shadow-sm">
+              <div className="flex items-center gap-2.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse shrink-0" />
+                <span>
+                  Subject Diagnostics focused on: <strong className="font-extrabold text-blue-950">{subjectData?.selectedExamName || examinationsList.find(e => e.id === selectedExamId)?.name}</strong>
+                </span>
+              </div>
+              <button
+                onClick={() => handleExamChange('all')}
+                className="text-[11px] font-bold text-blue-700 hover:text-blue-900 hover:underline px-2.5 py-1 rounded-lg bg-white/70 border border-blue-200 transition-colors"
+              >
+                View All Mocks
+              </button>
+            </div>
+          )}
           <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
               <div>
@@ -676,7 +705,9 @@ export const MockIntelligencePage: React.FC = () => {
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-extrabold uppercase text-[10px] tracking-wider">
                   <tr>
                     <th className="py-3 px-4">Subject</th>
-                    <th className="py-3 px-3 text-center">Current Mean</th>
+                    <th className="py-3 px-3 text-center">
+                      {subjectData?.selectedExamName ? `Mean (${subjectData.selectedExamName})` : 'Current Mean'}
+                    </th>
                     <th className="py-3 px-3 text-center">Previous Mean</th>
                     <th className="py-3 px-3 text-center">Immediate Change</th>
                     <th className="py-3 px-3 text-center">Overall Series Growth</th>
@@ -760,6 +791,26 @@ export const MockIntelligencePage: React.FC = () => {
           <TabSkeleton title="Comparing Sequential Mock Examinations..." />
         ) : mockComparison ? (
         <div className="space-y-6">
+          {/* Active Mock Focus Banner */}
+          {selectedExamId !== 'all' && (
+            <div className="p-3.5 bg-blue-50/90 border border-blue-200/90 rounded-2xl flex flex-wrap items-center justify-between gap-2 text-xs text-blue-900 shadow-sm">
+              <div className="flex items-center gap-2.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse shrink-0" />
+                <span>
+                  Comparing: <strong className="font-extrabold text-blue-950">{mockComparison?.selectedExamName || examinationsList.find(e => e.id === selectedExamId)?.name}</strong>
+                  {mockComparison?.prevExamName && (
+                    <span className="text-slate-600 font-semibold"> against preceding <strong className="text-slate-800">{mockComparison.prevExamName}</strong></span>
+                  )}
+                </span>
+              </div>
+              <button
+                onClick={() => handleExamChange('all')}
+                className="text-[11px] font-bold text-blue-700 hover:text-blue-900 hover:underline px-2.5 py-1 rounded-lg bg-white/70 border border-blue-200 transition-colors"
+              >
+                View All Mocks
+              </button>
+            </div>
+          )}
           {/* Section 1: Overview and Gap Analysis */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 lg:col-span-2">
@@ -984,9 +1035,27 @@ export const MockIntelligencePage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {mockComparison.tableData?.map((m: any) => (
-                      <tr key={m.examId} className="hover:bg-slate-50/70 transition-colors">
-                        <td className="py-3 px-4 font-bold text-slate-900">{m.examName}</td>
+                    {mockComparison.tableData?.map((m: any) => {
+                      const isSelected = selectedExamId !== 'all' && m.examId === selectedExamId;
+                      return (
+                        <tr
+                          key={m.examId}
+                          className={`transition-colors ${
+                            isSelected
+                              ? 'bg-blue-50/80 font-bold border-l-4 border-l-blue-600'
+                              : 'hover:bg-slate-50/70'
+                          }`}
+                        >
+                          <td className="py-3 px-4 font-bold text-slate-900">
+                            <div className="flex items-center gap-2">
+                              <span>{m.examName}</span>
+                              {isSelected && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-600 text-white font-bold uppercase tracking-wider">
+                                  Focus
+                                </span>
+                              )}
+                            </div>
+                          </td>
                         <td className="py-3 px-3 text-center font-extrabold text-slate-900">
                           {m.average !== null ? `${m.average}%` : '—'}
                         </td>
@@ -1005,8 +1074,9 @@ export const MockIntelligencePage: React.FC = () => {
                           {m.status === 'Stable' && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-800"><Minus className="w-3 h-3" /> Stb</span>}
                           {m.status === '—' && <span className="text-slate-400 text-xs">—</span>}
                         </td>
-                      </tr>
-                    ))}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1128,6 +1198,23 @@ export const MockIntelligencePage: React.FC = () => {
       {/* ==================== SUB-TAB 5: STUDENT COMPARISON TOOL ==================== */}
       {activeTab === 'students' && (
         <div className="space-y-6">
+          {/* Active Mock Focus Banner */}
+          {selectedExamId !== 'all' && (
+            <div className="p-3.5 bg-blue-50/90 border border-blue-200/90 rounded-2xl flex flex-wrap items-center justify-between gap-2 text-xs text-blue-900 shadow-sm">
+              <div className="flex items-center gap-2.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse shrink-0" />
+                <span>
+                  Comparing candidates for: <strong className="font-extrabold text-blue-950">{comparisonResults?.selectedExamName || examinationsList.find(e => e.id === selectedExamId)?.name}</strong>
+                </span>
+              </div>
+              <button
+                onClick={() => handleExamChange('all')}
+                className="text-[11px] font-bold text-blue-700 hover:text-blue-900 hover:underline px-2.5 py-1 rounded-lg bg-white/70 border border-blue-200 transition-colors"
+              >
+                View All Mocks
+              </button>
+            </div>
+          )}
           <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
             <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
               Multi-Candidate Head-to-Head Comparison (Section 33)
@@ -1166,7 +1253,7 @@ export const MockIntelligencePage: React.FC = () => {
           {comparisonResults && (
             <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
               <h3 className="text-base font-extrabold text-slate-900 mb-4">
-                Comparative Subject Competency Breakdown
+                Comparative Subject Competency Breakdown {comparisonResults?.selectedExamName ? `(${comparisonResults.selectedExamName})` : ''}
               </h3>
               <div className="h-80 w-full">
                 <ResponsiveContainer width="100%" height="100%">
@@ -1201,6 +1288,23 @@ export const MockIntelligencePage: React.FC = () => {
           <TabSkeleton title="Evaluating Subject Thresholds & Academic Alerts..." />
         ) : weakAreasData ? (
         <div className="space-y-6">
+          {/* Active Mock Focus Banner */}
+          {selectedExamId !== 'all' && (
+            <div className="p-3.5 bg-blue-50/90 border border-blue-200/90 rounded-2xl flex flex-wrap items-center justify-between gap-2 text-xs text-blue-900 shadow-sm">
+              <div className="flex items-center gap-2.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse shrink-0" />
+                <span>
+                  Academic Alerts & Weak Areas evaluated for: <strong className="font-extrabold text-blue-950">{weakAreasData?.selectedExamName || examinationsList.find(e => e.id === selectedExamId)?.name}</strong>
+                </span>
+              </div>
+              <button
+                onClick={() => handleExamChange('all')}
+                className="text-[11px] font-bold text-blue-700 hover:text-blue-900 hover:underline px-2.5 py-1 rounded-lg bg-white/70 border border-blue-200 transition-colors"
+              >
+                View All Mocks
+              </button>
+            </div>
+          )}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Subjects Below Target */}
             <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
@@ -1211,7 +1315,7 @@ export const MockIntelligencePage: React.FC = () => {
                 </h3>
               </div>
               <p className="text-xs text-slate-500 mb-4">
-                Curriculum areas where the class mean currently falls beneath the benchmark threshold
+                Curriculum areas where the class mean in {weakAreasData?.selectedExamName || 'the mock examination'} falls beneath the benchmark threshold
               </p>
 
               <div className="space-y-3">
@@ -1228,7 +1332,7 @@ export const MockIntelligencePage: React.FC = () => {
                     </div>
                     <div className="text-right">
                       <span className="text-lg font-black text-slate-900">{item.average}%</span>
-                      <p className="text-[10px] text-slate-500">Current Mean</p>
+                      <p className="text-[10px] text-slate-500">{weakAreasData?.selectedExamName ? `Mean in ${weakAreasData.selectedExamName}` : 'Current Mean'}</p>
                     </div>
                   </div>
                 ))}

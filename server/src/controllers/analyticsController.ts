@@ -43,12 +43,13 @@ export async function getOverview(req: AuthRequest, res: Response): Promise<void
 
 export async function getSubjectTrends(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { class: classFilter, academicYear } = req.query;
-    const key = `subjectTrends:${classFilter || 'all'}:${academicYear || 'default'}`;
+    const { class: classFilter, academicYear, examinationId } = req.query;
+    const key = `subjectTrends:${classFilter || 'all'}:${academicYear || 'default'}:${examinationId || 'all'}`;
     const data = await getOrCompute(key, () =>
       AnalyticsService.getSubjectPerformanceAcrossMocks(
         classFilter ? String(classFilter) : undefined,
-        academicYear ? String(academicYear) : undefined
+        academicYear ? String(academicYear) : undefined,
+        examinationId ? String(examinationId) : undefined
       )
     );
     res.json(data);
@@ -59,12 +60,13 @@ export async function getSubjectTrends(req: AuthRequest, res: Response): Promise
 
 export async function getMockComparison(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { class: classFilter, academicYear } = req.query;
-    const key = `mockComparison:${classFilter || 'all'}:${academicYear || 'default'}`;
+    const { class: classFilter, academicYear, examinationId } = req.query;
+    const key = `mockComparison:${classFilter || 'all'}:${academicYear || 'default'}:${examinationId || 'all'}`;
     const data = await getOrCompute(key, () =>
       AnalyticsService.getMockToMockComparison(
         classFilter ? String(classFilter) : undefined,
-        academicYear ? String(academicYear) : undefined
+        academicYear ? String(academicYear) : undefined,
+        examinationId ? String(examinationId) : undefined
       )
     );
     res.json(data);
@@ -128,13 +130,15 @@ export async function getStudentAnalytics(req: AuthRequest, res: Response): Prom
 
 export async function compareStudents(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { studentIds } = req.body;
+    const { studentIds, examinationId } = req.body;
     if (!Array.isArray(studentIds) || studentIds.length === 0) {
       res.status(400).json({ error: 'studentIds array is required.' });
       return;
     }
-    const key = `compareStudents:${[...studentIds].sort().join(',')}`;
-    const data = await getOrCompute(key, () => AnalyticsService.compareMultipleStudents(studentIds));
+    const key = `compareStudents:${[...studentIds].sort().join(',')}:${examinationId || 'all'}`;
+    const data = await getOrCompute(key, () =>
+      AnalyticsService.compareMultipleStudents(studentIds, examinationId ? String(examinationId) : undefined)
+    );
     res.json(data);
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to compare students: ' + err.message });

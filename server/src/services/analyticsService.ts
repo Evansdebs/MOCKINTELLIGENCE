@@ -153,7 +153,7 @@ export class AnalyticsService {
   /**
    * Multi-series subject performance across all mock examinations
    */
-  static async getSubjectPerformanceAcrossMocks(classFilter?: string, academicYear?: string) {
+  static async getSubjectPerformanceAcrossMocks(classFilter?: string, academicYear?: string, examinationId?: string) {
     const settings = await prisma.schoolSettings.findFirst();
     const year = academicYear || settings?.academicYear || '2025/2026';
 
@@ -226,9 +226,17 @@ export class AnalyticsService {
         const values: (number | null)[] = dataByMock.map(m => m[sub.name] ?? null);
         const validValues = values.filter((v): v is number => v !== null);
 
-        const currentAvg = validValues.length > 0 ? validValues[validValues.length - 1] : null;
-        const prevAvg = validValues.length > 1 ? validValues[validValues.length - 2] : null;
+        let currentAvg = validValues.length > 0 ? validValues[validValues.length - 1] : null;
+        let prevAvg = validValues.length > 1 ? validValues[validValues.length - 2] : null;
         const firstAvg = validValues.length > 0 ? validValues[0] : null;
+
+        if (examinationId && examinationId !== 'all') {
+          const examIdx = exams.findIndex(e => e.id === examinationId);
+          if (examIdx !== -1) {
+            currentAvg = dataByMock[examIdx]?.[sub.name] ?? null;
+            prevAvg = examIdx > 0 ? (dataByMock[examIdx - 1]?.[sub.name] ?? null) : null;
+          }
+        }
 
         const prevChange = (currentAvg !== null && prevAvg !== null)
           ? Math.round((currentAvg - prevAvg) * 10) / 10
@@ -253,17 +261,21 @@ export class AnalyticsService {
       })
     );
 
+    const selectedExam = (examinationId && examinationId !== 'all') ? exams.find(e => e.id === examinationId) : null;
+
     return {
       subjects: subjects.map(s => ({ id: s.id, name: s.name, code: s.code })),
       trends: dataByMock,
       subjectSummaries,
+      selectedExamId: selectedExam?.id || null,
+      selectedExamName: selectedExam?.name || null,
     };
   }
 
   /**
    * Mock-to-mock comparison analysis
    */
-  static async getMockToMockComparison(classFilter?: string, academicYear?: string) {
+  static async getMockToMockComparison(classFilter?: string, academicYear?: string, examinationId?: string) {
     const settings = await prisma.schoolSettings.findFirst();
     const threshold = settings?.stableThreshold || 1.0;
     const target = settings?.passThreshold || 75.0; // Assume target is pass threshold or fallback to 75
@@ -361,10 +373,19 @@ export class AnalyticsService {
     let deltaChartData: any[] = [];
 
     if (exams.length >= 2) {
-      const latestExam = exams[exams.length - 1];
-      const prevExam = exams[exams.length - 2];
-      
-      targetAnalysis.latestAverage = rows[rows.length - 1].average || 0;
+      let latestExam = exams[exams.length - 1];
+      let prevExam = exams[exams.length - 2];
+
+      if (examinationId && examinationId !== 'all') {
+        const examIdx = exams.findIndex(e => e.id === examinationId);
+        if (examIdx !== -1) {
+          latestExam = exams[examIdx];
+          prevExam = examIdx > 0 ? exams[examIdx - 1] : (exams.length > 1 ? exams[1] : exams[0]);
+        }
+      }
+
+      const targetRow = rows.find(r => r.examId === latestExam.id);
+      targetAnalysis.latestAverage = targetRow?.average || rows[rows.length - 1]?.average || 0;
       targetAnalysis.gap = Math.round((target - targetAnalysis.latestAverage) * 10) / 10;
       targetAnalysis.gapClosed = targetAnalysis.latestAverage > target ? 100 : Math.max(0, Math.round((targetAnalysis.latestAverage / target) * 100));
 
@@ -442,6 +463,8 @@ export class AnalyticsService {
       change: r.change
     }));
 
+    const selectedExam = (examinationId && examinationId !== 'all') ? exams.find(e => e.id === examinationId) : null;
+
     return {
       tableData: rows,
       topRisers,
@@ -449,7 +472,9 @@ export class AnalyticsService {
       subjectDrivers,
       targetAnalysis,
       gradeDistribution,
-      deltaChartData
+      deltaChartData,
+      selectedExamId: selectedExam?.id || null,
+      selectedExamName: selectedExam?.name || null,
     };
   }
 
@@ -831,7 +856,7 @@ export class AnalyticsService {
   /**
    * Multi-student comparison
    */
-  static async compareMultipleStudents(studentIds: string[]) {
+  static async compareMultipleStudents(studentIds: string[], examinationId?: string) {
     const students = await prisma.student.findMany({
       where: { id: { in: studentIds } },
     });
@@ -845,6 +870,10 @@ export class AnalyticsService {
       orderBy: { sequenceOrder: 'asc' },
     });
 
+    const targetExam = (examinationId && examinationId !== 'all')
+      ? exams.find(e => e.id === examinationId) || (exams.length > 0 ? exams[exams.length - 1] : null)
+      : (exams.length > 0 ? exams[exams.length - 1] : null);
+
     const studentReports = await Promise.all(
       studentIds.map(async (id) => {
         return await this.getStudentAnalytics(id);
@@ -856,7 +885,12 @@ export class AnalyticsService {
       const studentMap: Record<string, number | null> = {};
       studentReports.forEach(rep => {
         const match = rep.subjectTrends.find(s => s.subjectId === sub.id);
-        studentMap[rep.student.fullName] = match ? match.latestPercentage : null;
+        if (targetExam) {
+          const pt = match?.scores?.find((p: any) => p.examId === targetExam.id);
+          studentMap[rep.student.fullName] = pt ? pt.percentage : (match ? match.latestPercentage : null);
+        } else {
+          studentMap[rep.student.fullName] = match ? match.latestPercentage : null;
+        }
       });
 
       return {
@@ -870,6 +904,8 @@ export class AnalyticsService {
       students,
       studentReports,
       subjectComparison,
+      selectedExamId: targetExam?.id || null,
+      selectedExamName: targetExam?.name || null,
     };
   }
 
@@ -1011,37 +1047,40 @@ export class AnalyticsService {
       }
     }
 
-    // Class level alert: significant improvement or decline between last 2 mocks
-    if (exams.length >= 2) {
-      const examA = exams[exams.length - 2];
-      const examB = exams[exams.length - 1];
+    // Class level alert: significant improvement or decline between selected mock and previous mock
+    if (exams.length >= 2 && targetExam) {
+      const examB = targetExam;
+      const examBIndex = exams.findIndex(e => e.id === examB.id);
+      const examA = examBIndex > 0 ? exams[examBIndex - 1] : null;
 
-      const scoresA = await prisma.score.findMany({
-        where: { examinationId: examA.id, percentage: { not: null }, student: studentWhere },
-        select: { percentage: true },
-      });
-      const scoresB = await prisma.score.findMany({
-        where: { examinationId: examB.id, percentage: { not: null }, student: studentWhere },
-        select: { percentage: true },
-      });
+      if (examA) {
+        const scoresA = await prisma.score.findMany({
+          where: { examinationId: examA.id, percentage: { not: null }, student: studentWhere },
+          select: { percentage: true },
+        });
+        const scoresB = await prisma.score.findMany({
+          where: { examinationId: examB.id, percentage: { not: null }, student: studentWhere },
+          select: { percentage: true },
+        });
 
-      if (scoresA.length > 0 && scoresB.length > 0) {
-        const avgA = scoresA.reduce((sum, s) => sum + (s.percentage || 0), 0) / scoresA.length;
-        const avgB = scoresB.reduce((sum, s) => sum + (s.percentage || 0), 0) / scoresB.length;
-        const diff = Math.round((avgB - avgA) * 10) / 10;
+        if (scoresA.length > 0 && scoresB.length > 0) {
+          const avgA = scoresA.reduce((sum, s) => sum + (s.percentage || 0), 0) / scoresA.length;
+          const avgB = scoresB.reduce((sum, s) => sum + (s.percentage || 0), 0) / scoresB.length;
+          const diff = Math.round((avgB - avgA) * 10) / 10;
 
-        if (diff >= 5.0) {
-          alerts.unshift({
-            type: 'positive',
-            title: 'Significant Class Growth',
-            description: `Class average increased by +${diff}% from ${examA.name} to ${examB.name}.`,
-          });
-        } else if (diff <= -5.0) {
-          alerts.unshift({
-            type: 'critical',
-            title: 'Class Average Drop',
-            description: `Class average declined by ${diff}% from ${examA.name} to ${examB.name}.`,
-          });
+          if (diff >= 5.0) {
+            alerts.unshift({
+              type: 'positive',
+              title: 'Significant Class Growth',
+              description: `Class average increased by +${diff}% from ${examA.name} to ${examB.name}.`,
+            });
+          } else if (diff <= -5.0) {
+            alerts.unshift({
+              type: 'critical',
+              title: 'Class Average Drop',
+              description: `Class average declined by ${diff}% from ${examA.name} to ${examB.name}.`,
+            });
+          }
         }
       }
     }
@@ -1050,6 +1089,8 @@ export class AnalyticsService {
       target,
       subjectsBelowTarget,
       alerts: alerts.slice(0, 20), // Top relevant alerts
+      selectedExamId: targetExam?.id || null,
+      selectedExamName: targetExam?.name || null,
     };
   }
 

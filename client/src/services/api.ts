@@ -275,7 +275,11 @@ export const api = {
     return request<any>(`/analytics/heatmap?${query}`);
   },
   getStudentAnalytics: (studentId: string) => request<any>(`/analytics/student/${studentId}`),
-  compareStudents: (studentIds: string[]) => request<any>('/analytics/compare-students', { method: 'POST', body: JSON.stringify({ studentIds }) }),
+  compareStudents: (studentIds: string[], examinationId?: string) =>
+    request<any>('/analytics/compare-students', {
+      method: 'POST',
+      body: JSON.stringify({ studentIds, examinationId }),
+    }),
   getWeakAreasAndAlerts: (params: Record<string, string> = {}) => {
     const query = new URLSearchParams(params).toString();
     return request<any>(`/analytics/weak-areas?${query}`);
