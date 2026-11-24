@@ -33,13 +33,19 @@ export function clearTokenAuthCache(token?: string) {
  * 3. Checks internal JWT verification for students and legacy staff.
  */
 export async function authenticate(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+  let token: string | undefined;
+
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1];
+  } else if (req.query.token && typeof req.query.token === 'string') {
+    token = req.query.token;
+  }
+
+  if (!token) {
     res.status(401).json({ error: 'Access denied. No authentication token provided.' });
     return;
   }
-
-  const token = authHeader.split(' ')[1];
 
   // Fast-path: In-memory session cache hit
   const cached = tokenAuthCache.get(token);

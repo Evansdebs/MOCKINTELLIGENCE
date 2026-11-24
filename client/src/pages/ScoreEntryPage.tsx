@@ -47,6 +47,7 @@ export const ScoreEntryPage: React.FC = () => {
   const [importSubjectId, setImportSubjectId] = useState<string>('');
   const [importPreview, setImportPreview] = useState<any>(null);
   const [importLoading, setImportLoading] = useState(false);
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
 
   useEffect(() => {
     initPage();
@@ -169,8 +170,16 @@ export const ScoreEntryPage: React.FC = () => {
   };
 
   // Import handlers
-  const handleDownloadTemplate = () => {
-    window.open(`/api/scores/template?class=${selectedClass}`, '_blank');
+  const handleDownloadTemplate = async () => {
+    try {
+      setDownloadingTemplate(true);
+      await api.downloadScoreTemplate(selectedClass);
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'Failed to download blank template.');
+    } finally {
+      setDownloadingTemplate(false);
+    }
   };
 
   const handlePreviewScoreImport = async () => {
@@ -498,10 +507,15 @@ export const ScoreEntryPage: React.FC = () => {
             </div>
             <button
               onClick={handleDownloadTemplate}
-              className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all"
+              disabled={downloadingTemplate}
+              className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all disabled:opacity-50"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span>Download Blank Template</span>
+              {downloadingTemplate ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Download className="w-3.5 h-3.5" />
+              )}
+              <span>{downloadingTemplate ? 'Downloading...' : 'Download Blank Template'}</span>
             </button>
           </div>
 

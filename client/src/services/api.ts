@@ -241,6 +241,38 @@ export const api = {
   batchSaveScores: (data: { examinationId: string; scores: any[] }) => request<any>('/scores/batch', { method: 'POST', body: JSON.stringify(data) }),
   previewScoreImport: (formData: FormData) => request<any>('/scores/import/preview', { method: 'POST', body: formData }),
   commitScoreImport: (data: { examinationId: string; subjectId: string; records: any[] }) => request<any>('/scores/import/commit', { method: 'POST', body: JSON.stringify(data) }),
+  downloadScoreTemplate: async (classId?: string) => {
+    const token = localStorage.getItem('mock_intel_token');
+    const params = new URLSearchParams();
+    if (classId && classId !== 'all') {
+      params.append('classId', classId);
+    }
+    const query = params.toString() ? `?${params.toString()}` : '';
+
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE}/scores/template${query}`, {
+      headers,
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => null);
+      throw new Error(err?.error || `Download failed with status ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Score_Entry_Template.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  },
   
   // OMR
   scanOmrSheet: (formData: FormData) => request<any>('/omr/scan', { method: 'POST', body: formData }),

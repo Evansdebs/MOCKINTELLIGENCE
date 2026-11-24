@@ -538,7 +538,7 @@ export async function commitScoreImport(req: AuthRequest, res: Response): Promis
  */
 export async function downloadScoreTemplate(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { classId: classFilter } = req.query;
+    const classFilter = (req.query.classId || req.query.class) as string | undefined;
 
     const studentWhere: any = { status: 'Active' };
     if (classFilter && classFilter !== 'all') {
@@ -551,13 +551,24 @@ export async function downloadScoreTemplate(req: AuthRequest, res: Response): Pr
       orderBy: [{ classRoom: { name: 'asc' } }, { fullName: 'asc' }],
     });
 
-    const rows = students.map((s, idx) => ({
-      '#': idx + 1,
-      'Index Number': s.indexNumber,
-      'Student Name': s.fullName,
-      'Class': s.classRoom?.name || '—',
-      'Score': '', // Blank for teacher entry
-    }));
+    const rows =
+      students.length > 0
+        ? students.map((s, idx) => ({
+            '#': idx + 1,
+            'Index Number': s.indexNumber,
+            'Student Name': s.fullName,
+            'Class': s.classRoom?.name || '—',
+            'Score': '', // Blank for teacher entry
+          }))
+        : [
+            {
+              '#': 1,
+              'Index Number': '010203001',
+              'Student Name': 'Sample Student',
+              'Class': 'Basic 9A',
+              'Score': '',
+            },
+          ];
 
     const worksheet = XLSX.utils.json_to_sheet(rows);
     const workbook = XLSX.utils.book_new();
@@ -569,6 +580,7 @@ export async function downloadScoreTemplate(req: AuthRequest, res: Response): Pr
     res.setHeader('Content-Disposition', 'attachment; filename="Score_Entry_Template.xlsx"');
     res.send(buffer);
   } catch (err) {
+    console.error('Failed to generate score template:', err);
     res.status(500).json({ error: 'Failed to generate template.' });
   }
 }
